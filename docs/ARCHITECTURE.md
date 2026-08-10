@@ -1,7 +1,7 @@
 # Architecture
 
-This document describes the system **as implemented** at the end of the
-foundation phase. It does not describe planned features — see
+This document describes the system **as implemented**, through Phase 2
+(Admin CRUD). It does not describe planned features — see
 [ROADMAP.md](ROADMAP.md) for those.
 
 ## Overview
@@ -137,6 +137,88 @@ throw with a standalone Node script calling `createClient('', '')`
 against the installed `@supabase/supabase-js`, confirmed the fix stops
 it. Present since Phase 0; found via this phase's required
 dev-server smoke check, not a regression introduced by Phase 1B or 1A.
+
+## Admin CRUD (Phase 2)
+
+Authenticated management screens for everything the public catalogue
+reads: categories, brands, products (incl. images and reference aliases),
+and store settings. All under `/admin/*`, behind the existing
+`RequireAuth`/`AdminLayout` — no new auth mechanism.
+
+- **`src/features/admin/`**, organized by subdomain (`categories/`,
+  `brands/`, `products/`, `settings/`), plus `shared/` for cross-cutting
+  admin UI: `pgErrorMessage.ts` (maps common Postgres error codes —
+  `23505` unique_violation, `23503` FK-restrict, `42501` RLS-denied — to
+  plain PT-PT messages), `slugify.ts`, `FormField.tsx`, `ConfirmDialog.tsx`,
+  `KeyValueListEditor.tsx`. `pages/admin/*` stay thin, same split as
+  `pages/public/*`.
+- **No client-side admin check anywhere.** Every mutation is a plain
+  `supabase.from(table).insert/update/delete(...)` call; if the signed-in
+  user isn't in `admin_users`, RLS rejects it and the UI just shows the
+  resulting error — there is no `if (isAdmin)` gate in front of a mutation
+  that isn't also backed by the matching RLS policy.
+- **Categories/brands: activate/deactivate, not delete.** `on delete
+restrict` (see [DATABASE.md](DATABASE.md)) means a delete UI for these
+  would mostly just surface a confusing FK error once anything references
+  them; deactivating is the supported "remove from the public catalogue"
+  action. Products get a real delete (cascades images/aliases by design),
+  behind `ConfirmDialog`.
+- **Product images**: reuses the Phase 1A `product-images` bucket and
+  `product_images` table — no new bucket, no new table.
+  `ProductImageManager` validates type (jpeg/png/webp) and size (5 MB)
+  client-side to match the bucket's own config (fast feedback only, the
+  bucket policy is the real enforcement), uploads to
+  `products/<product_id>/<crypto.randomUUID()>.<ext>` (a random id, not
+  the user's filename — nothing to sanitize, no collision risk), and
+  reorders via simple up/down buttons swapping `sort_order` (no
+  drag-and-drop dependency). Setting a new primary image unsets the old
+  one first, strictly sequentially, so the partial unique index
+  (`product_images_one_primary_per_product`) never sees two `is_primary =
+true` rows for the same product at once.
+- **Reference aliases**: reuses `product_reference_aliases` /
+  `referenceTypeLabel()` from `features/catalogue` — one model, one label
+  mapping, used by both the public detail page and this admin screen.
+- **`opening_hours`/`social_media` shape decided**: `Record<string,
+string>` (label → text), matching what `PublicLayout.tsx` already
+  assumed when rendering them — the admin form and the public renderer
+  agree by construction, not by coincidence.
+  `primary_color`/`secondary_color` are editable in the form (real
+  columns, the task asked to edit the existing fields) but the storefront
+  still doesn't apply them anywhere — the Phase 0 dynamic-theming
+  deferral isn't being revisited, the form just says so in its hint text.
+- **`src/services/storeConfigService.ts` gained `saveStoreConfig()`**
+  (upsert) alongside the existing `getStoreConfig()` — same `StoreConfig`
+  shape, same table, not a second settings model.
+
+### Bug found and fixed during this phase
+
+Every `.insert()`/`.update()` call written for this phase failed to
+type-check against `src/types/database.ts`'s `Database` type — the
+argument type collapsed to `never` for every table. Traced to two
+concrete gaps in that file, confirmed by reading
+`@supabase/postgrest-js`'s own source
+(`PostgrestQueryBuilder.ts`, `types/common/common.ts`), not guessed:
+
+1. Row shapes were declared with `interface X {...}`. Postgrest's
+   `.insert()`/`.update()` require each row type to structurally satisfy
+   `Record<string, unknown>` — a `type X = {...}` alias for an object
+   shape satisfies that, a declared `interface` with identical members
+   does not (TypeScript only grants object _type_ shapes an implicit
+   index signature for this check). `.select()` doesn't hit this code
+   path, which is why it worked fine through two prior phases of
+   read-only queries.
+2. Each table entry was missing `Relationships: []`, and the schema was
+   missing `Views`/`Functions` — both required by postgrest-js's
+   `GenericTable`/`GenericSchema` constraint types, even for a project
+   with no views or database functions exposed to PostgREST.
+
+Fixed by converting every row type in `database.ts` from `interface` to
+`type`, and adding `Relationships: []` / `Views: Record<string, never>` /
+`Functions: Record<string, never>`. No behavioural change — this is a
+compile-time-only fix, confirmed with an isolated `tsc` repro against the
+installed postgrest-js source before applying it project-wide, and by the
+full admin CRUD build succeeding afterward with zero `as any`/`as never`
+casts needed anywhere in the new code.
 
 ## Supabase architecture
 
@@ -317,3 +399,15 @@ build`).
   string**, when Supabase credentials are missing — fixes a real crash
   (see "Bug found and fixed during this phase" above), keeping the
   module's already-documented "log and don't crash" intent actually true.
+- **`src/types/database.ts` row types are `type` aliases, not
+  `interface`s**, and every table carries `Relationships: []`
+  (schema carries `Views`/`Functions: {}`) — required for
+  `.insert()`/`.update()` to type-check at all against a hand-written
+  Database type. See "Admin CRUD (Phase 2)" above for the full story;
+  don't revert this for style reasons.
+- **Categories/brands get activate/deactivate; products get a real
+  delete.** Different tables, different constraints (`on delete
+restrict` vs. intentional cascade) — the admin UI mirrors that rather
+  than offering one uniform "delete" action everywhere.
+- **No drag-and-drop library for product image ordering.** Up/down
+  buttons swapping `sort_order` cover the need without a new dependency.

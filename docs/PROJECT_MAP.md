@@ -36,7 +36,11 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │   ├── public/ProductDetailPage.tsx    @ /produtos/:slug
 │   │   ├── public/NotFoundPage.tsx
 │   │   ├── admin/LoginPage.tsx           Real Supabase Auth sign-in form
-│   │   └── admin/DashboardPage.tsx        Placeholder behind RequireAuth
+│   │   ├── admin/DashboardPage.tsx        Counts + links into each section
+│   │   ├── admin/CategoriesPage.tsx, admin/CategoryFormPage.tsx
+│   │   ├── admin/BrandsPage.tsx, admin/BrandFormPage.tsx
+│   │   ├── admin/ProductsPage.tsx, admin/ProductFormPage.tsx
+│   │   └── admin/SettingsPage.tsx
 │   │
 │   ├── features/auth/                 Auth as a feature module (session context + guard)
 │   │   ├── AuthContext.tsx, AuthProvider.tsx, useAuth.ts, RequireAuth.tsx
@@ -54,8 +58,21 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │       ├── ProductFilters.tsx, CategoryList.tsx
 │   │       ├── ProductGallery.tsx, ConditionBadge.tsx, CatalogueImage.tsx
 │   │
+│   ├── features/admin/                Admin CRUD: queries, hooks, admin-only components (Phase 2)
+│   │   ├── shared/
+│   │   │   ├── pgErrorMessage.ts          Postgres error code -> PT-PT message
+│   │   │   ├── slugify.ts, FormField.tsx, ConfirmDialog.tsx, KeyValueListEditor.tsx
+│   │   ├── categories/                    api.ts, useAdminCategories.ts, CategoryForm.tsx
+│   │   ├── brands/                        same shape as categories/
+│   │   ├── products/
+│   │   │   ├── api.ts                       Products + product_images + product_reference_aliases CRUD
+│   │   │   ├── useAdminProducts.ts, useAdminProduct.ts
+│   │   │   └── ProductForm.tsx, ProductImageManager.tsx, ReferenceAliasManager.tsx
+│   │   └── settings/
+│   │       └── StoreSettingsForm.tsx        Uses storeConfigService's saveStoreConfig()
+│   │
 │   ├── services/                      Functions that talk to Supabase, one per concern
-│   │   └── storeConfigService.ts        Reads store_settings, falls back to defaults
+│   │   └── storeConfigService.ts        Reads/writes store_settings (getStoreConfig, saveStoreConfig)
 │   │
 │   ├── lib/                            Low-level infrastructure, no business logic
 │   │   ├── supabase.ts                  The one Supabase client instance
@@ -96,10 +113,17 @@ Deviations from a "textbook" structure are called out with the reasoning.
 The public catalogue UI (`features/catalogue/`, the three `pages/public/`
 catalogue routes, and the live-`store_settings` `PublicLayout`) was built
 in Phase 1B, on top of the Phase 1A data/storage foundation
-([DATABASE.md](DATABASE.md)). Still deliberately absent: any admin
-CRUD screen, an admin `features/`/`services/` module, and a data-fetching
-library (still plain hooks + `async`/`await`, per
-[ARCHITECTURE.md](ARCHITECTURE.md)'s standing decision).
+([DATABASE.md](DATABASE.md)).
+
+## Phase 2 note
+
+Admin CRUD (`features/admin/`, the `pages/admin/*` management screens)
+was built in Phase 2, reusing Phase 1A/1B's schema, RLS, Storage bucket,
+and (for reference-type labels and the category tree helper)
+`features/catalogue/` code directly rather than duplicating it. Still no
+data-fetching library — same plain hooks + `async`/`await` pattern as
+`features/catalogue/`, per [ARCHITECTURE.md](ARCHITECTURE.md)'s standing
+decision.
 
 ## Deviations from the originally sketched structure, and why
 
@@ -108,11 +132,14 @@ library (still plain hooks + `async`/`await`, per
   `features/auth/`. An empty `hooks/` directory would have no purpose
   yet. Add it back if/when a hook emerges that isn't feature-specific
   (e.g. a generic `useDebounce`).
-- **`features/` currently has two subfolders (`auth`, `catalogue`).**
-  Each self-contained slice of business functionality — its own state/
-  hooks, components, and Supabase calls — gets its own `features/<name>/`
-  when it's built, following that same shape. A future cart/reserve flow
-  would get one too, rather than being bolted onto an existing feature.
+- **`features/` currently has three subfolders (`auth`, `catalogue`,
+  `admin`).** Each self-contained slice of business functionality — its
+  own state/hooks, components, and Supabase calls — gets its own
+  `features/<name>/` when it's built, following that same shape. `admin/`
+  is further split by subdomain (`categories/`, `brands/`, `products/`,
+  `settings/`) since it's a bigger feature than the other two — a future
+  cart/reserve flow would get its own top-level folder, not be bolted
+  onto an existing one.
 - **No `hooks/`, `utils/` beyond `cn.ts`.** Kept minimal on purpose —
   utilities get added when a second, third use case actually needs them,
   not speculatively.

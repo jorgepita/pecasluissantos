@@ -1,9 +1,16 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, NavLink } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/features/auth/useAuth';
 
-/** Minimal shell for admin pages. The full dashboard nav is a next-phase build. */
+const NAV_ITEMS = [
+  { to: '/admin/produtos', label: 'Produtos' },
+  { to: '/admin/categorias', label: 'Categorias' },
+  { to: '/admin/marcas', label: 'Marcas' },
+  { to: '/admin/definicoes', label: 'Definições' },
+];
+
+/** Shell for admin pages: top bar (brand + sign out) + section nav. */
 export function AdminLayout() {
   const { signOut } = useAuth();
 
@@ -23,6 +30,22 @@ export function AdminLayout() {
           </Button>
         </Container>
       </header>
+
+      <nav className="border-b border-slate-200 bg-white">
+        <Container className="flex h-11 items-center gap-4 text-sm">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                isActive ? 'font-medium text-brand-700' : 'text-slate-600 hover:text-slate-900'
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </Container>
+      </nav>
 
       <main className="flex-1">
         <Outlet />

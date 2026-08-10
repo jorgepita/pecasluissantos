@@ -68,14 +68,41 @@ integrations, stock management, CI/CD deployment.
   search (current `ilike`-based search is adequate for a small
   catalogue).
 
-## Phase 2 — Admin CRUD
+## Phase 2 — Admin CRUD (complete)
 
-- Admin dashboard: product list, create/edit/delete forms.
-- Multi-image upload UI on top of the Storage bucket from Phase 1A.
-- Category/brand management screens.
-- Store settings management screen (finally populates `store_settings`
-  from the UI instead of the SQL editor).
-- Availability/status management.
+- Category management: list, create/edit, activate/deactivate, parent
+  picker with cycle-safe options, slug generation + validation.
+- Brand management: same shape as categories, no hierarchy.
+- Product management: list/search/filter, create/edit, delete (with
+  confirmation), status/condition/category/brand/price/currency/stock/
+  primary reference/description fields.
+- Multi-image upload UI on the existing `product-images` Storage bucket:
+  upload, preview, delete, set primary, reorder — no new bucket.
+- Reference alias management on the product edit page, using the
+  existing `product_reference_aliases` model.
+- Store settings management screen — `store_settings` is now populated
+  from the UI instead of only the SQL editor; `saveStoreConfig()` added
+  alongside the existing `getStoreConfig()`.
+- Friendly PT-PT validation and Postgres-error messages across every
+  admin form.
+- Security verified directly against the live project: anonymous
+  `INSERT` rejected (categories, brands — `42501` RLS violation) and
+  anonymous Storage upload rejected (`AccessDenied` RLS violation).
+  Anonymous `UPDATE`/`DELETE` rejection and authenticated-non-admin /
+  authenticated-admin flows were **not** independently verified from the
+  session that built this phase — the live tables are still empty (no
+  row to target) and no browser/admin credentials are available outside
+  a real browser session. See the Phase 2 completion report.
+- Bug found and fixed: `src/types/database.ts` used `interface` for row
+  types, which silently broke `.insert()`/`.update()` type-checking
+  against the whole `Database` type (collapsed to `never`) — `.select()`
+  alone never hit the problem, which is why two prior phases of
+  read-only queries didn't surface it. See ARCHITECTURE.md.
+- **Not done** (deliberately out of scope): admin account creation UI
+  (still SQL-editor bootstrapping, unchanged since Phase 0 — see
+  DATABASE.md), vehicle compatibility, WhatsApp ordering workflow,
+  payments, orders, customer accounts, stock-management workflow beyond
+  the existing `stock_quantity` field, statistics/reporting.
 
 ## Phase 3 — Customer-facing contact flow
 

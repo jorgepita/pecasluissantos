@@ -40,11 +40,8 @@ function mapRow(row: StoreSettingsRow): StoreConfig {
 /**
  * Reads the single `store_settings` row. Returns `DEFAULT_STORE_CONFIG` if
  * no row exists yet or the request fails, so the public site always has
- * something to render.
- *
- * Not yet called from the UI in this foundation phase — the shell renders
- * `DEFAULT_STORE_CONFIG` directly. Wiring this up is next-phase work (see
- * docs/ROADMAP.md) once the admin settings screen exists to populate the row.
+ * something to render. Called from `PublicLayout` on every page load
+ * (Phase 1B) and from the admin settings form (Phase 2, to prefill it).
  */
 export async function getStoreConfig(): Promise<StoreConfig> {
   const { data, error } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
@@ -54,4 +51,36 @@ export async function getStoreConfig(): Promise<StoreConfig> {
   }
 
   return mapRow(data);
+}
+
+/**
+ * Creates or updates the single `store_settings` row. `upsert` (rather
+ * than a plain `update`) because the row may not exist yet the first time
+ * an admin fills in the settings form — same table, same `StoreConfig`
+ * shape as `getStoreConfig()`, not a second model. Admin-only per RLS
+ * (`store_settings_insert_admin` / `store_settings_update_admin`); a
+ * non-admin calling this gets the RLS error back unchanged, there is no
+ * client-side admin check here to bypass.
+ */
+export async function saveStoreConfig(input: StoreConfig): Promise<StoreConfig> {
+  const { data, error } = await supabase
+    .from('store_settings')
+    .upsert({
+      id: 1,
+      store_name: input.storeName,
+      logo_url: input.logoUrl,
+      phone: input.phone,
+      whatsapp_number: input.whatsappNumber,
+      email: input.email,
+      address: input.address,
+      opening_hours: input.openingHours,
+      social_media: input.socialMedia,
+      primary_color: input.primaryColor,
+      secondary_color: input.secondaryColor,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return mapRow(data as StoreSettingsRow);
 }

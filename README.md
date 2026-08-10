@@ -5,12 +5,14 @@ catalogue plus an administration panel for managing products, categories,
 brands and store configuration.
 
 > **Status**: the application shell, Supabase wiring, authentication
-> foundation, the product catalogue data model, and a **read-only public
-> catalogue** (browse, search, filter, product detail — at `/produtos`)
-> exist. The storefront header/footer render live `store_settings`. Admin
-> CRUD, per-product WhatsApp reservation, and everything else
-> business-specific beyond browsing is **not implemented yet** — see
-> [docs/ROADMAP.md](docs/ROADMAP.md).
+> foundation, the product catalogue data model, a **read-only public
+> catalogue** (browse, search, filter, product detail — at `/produtos`),
+> and a full **admin panel** (`/admin`: categories, brands, products,
+> product images, reference aliases, store settings) all exist. The
+> storefront header/footer render live `store_settings`. Per-product
+> WhatsApp reservation, payments, orders, customer accounts and
+> everything else business-specific beyond browsing/management is **not
+> implemented yet** — see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Full architecture and rationale live in [`docs/`](docs/):
 
@@ -67,12 +69,12 @@ saying it should work this way.
 ## Database
 
 SQL migrations live in [`supabase/migrations/`](supabase/migrations/). A
-Supabase project has been provisioned and connected. Migrations 0001-0002
-(admin/store foundation) are applied and were manually verified against
-the live project. Migrations 0003-0009 (product catalogue foundation)
-are new — see the Phase 1A completion report (in project history) for
-whether they were applied to the live project in your case, or apply
-them yourself in order via the Supabase SQL editor or CLI. See
+Supabase project has been provisioned and connected, and all migrations
+(`0001`-`0009`) have been applied and verified against it — tables,
+enums, indexes, RLS, and Storage bucket/policies all confirmed present
+(see project history for the verification detail). If you're pointing
+this app at a different Supabase project, apply the migrations yourself,
+in order, via the Supabase SQL editor or CLI. See
 [docs/DATABASE.md](docs/DATABASE.md) for full schema details and how to
 bootstrap the first admin user.
 
