@@ -45,6 +45,7 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │
 │   ├── types/                          Shared TypeScript types
 │   │   ├── database.ts                   Hand-written types mirroring the SQL schema
+│   │   │                                   (store/admin + product catalogue tables, enums)
 │   │   └── store-config.ts                 App-facing StoreConfig shape
 │   │
 │   ├── utils/
@@ -56,7 +57,14 @@ Deviations from a "textbook" structure are called out with the reasoning.
 ├── supabase/
 │   └── migrations/                    Numbered SQL migrations, applied in order (see DATABASE.md)
 │       ├── 0001_create_admin_users.sql
-│       └── 0002_create_store_settings.sql
+│       ├── 0002_create_store_settings.sql
+│       ├── 0003_create_catalogue_helpers.sql       shared set_updated_at() trigger fn
+│       ├── 0004_create_categories.sql               hierarchical categories
+│       ├── 0005_create_brands.sql
+│       ├── 0006_create_products.sql                 condition/status enums + products
+│       ├── 0007_create_product_images.sql
+│       ├── 0008_create_product_reference_aliases.sql  reference_type enum + aliases
+│       └── 0009_create_product_images_storage_bucket.sql  product-images bucket + policies
 │
 ├── public/
 │   └── favicon.svg
@@ -64,6 +72,17 @@ Deviations from a "textbook" structure are called out with the reasoning.
 └── docs/
     ├── ARCHITECTURE.md, DATABASE.md, PROJECT_MAP.md (this file), ROADMAP.md
 ```
+
+## Phase 1A note
+
+The product catalogue database schema (`categories`, `brands`, `products`,
+`product_images`, `product_reference_aliases`) and its Supabase Storage
+bucket exist as of Phase 1A — see [DATABASE.md](DATABASE.md). There is
+deliberately no `src/features/catalogue/`, `src/services/*` catalogue
+service, or catalogue page yet: this phase built the data foundation only,
+not the UI or the read/write functions that would consume it. Those
+arrive with the catalogue-UI phase, following the same shape as
+`features/auth/` and `services/storeConfigService.ts`.
 
 ## Deviations from the originally sketched structure, and why
 

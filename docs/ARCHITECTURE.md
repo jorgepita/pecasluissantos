@@ -20,7 +20,7 @@ Browser (React SPA)
 Supabase
    ├─ PostgreSQL (RLS-protected tables)
    ├─ Auth (email/password, admin allowlist)
-   └─ Storage (planned — see below)
+   └─ Storage (product-images bucket, RLS-protected)
 ```
 
 No backend server is planned unless a genuine need emerges (e.g. a
@@ -102,28 +102,27 @@ discussed before being made.
   is not in `admin_users` can authenticate but `is_admin()` still returns
   false, so RLS still blocks writes.
 
-## Storage approach (planned, not yet implemented)
+## Storage approach
 
-Product images will use Supabase Storage. Documented here so the intended
-design is agreed before it's built:
+Product images use Supabase Storage. The bucket and its policies are
+built (`supabase/migrations/0009_create_product_images_storage_bucket.sql`,
+Phase 1A) — the **upload UI is not** (that's a later phase). Full detail
+in [DATABASE.md](DATABASE.md) ("Storage"); summary:
 
-- A public bucket for product photos (read-only to anonymous visitors,
-  matching the public catalogue's needs).
-- Uploads restricted to admins, enforced via a Storage RLS policy calling
-  `public.is_admin()`, mirroring the pattern already used for
-  `store_settings`.
-- Image naming: prefix by product id/reference to avoid collisions and
-  make orphan cleanup traceable (exact convention TBD when the `products`
-  table is built).
-- Orphaned image cleanup (files left behind after a product/image record
-  is deleted) needs an explicit strategy — likely a scheduled Supabase
-  Edge Function or a delete-time cleanup call — not designed yet.
-- File type restriction (images only) and a reasonable size cap (exact
-  limit TBD) enforced both client-side (fast feedback) and via Storage
-  bucket policy (actual enforcement).
-
-No bucket, policy, or upload code exists yet — this is a design note for
-the phase that builds product image upload.
+- `product-images` bucket, public (anonymous reads via Storage's
+  public-URL path — no auth needed to view a photo).
+- `insert`/`update`/`delete` on objects in that bucket require
+  `public.is_admin()`, enforced via `storage.objects` RLS — the same
+  `is_admin()` used everywhere else, not a parallel check.
+- Bucket-level `file_size_limit` (5 MB) and `allowed_mime_types`
+  (jpeg/png/webp) as a first line of defense; not a substitute for
+  client-side validation once an upload UI exists.
+- **Still undesigned**: orphaned-object cleanup (deleting a `product_images`
+  row/product doesn't delete the underlying Storage object), and the exact
+  file-naming convention beyond "must be unique per product" (enforced at
+  the DB level, not by naming discipline). Both are noted, neither is
+  blocking for this phase since there's no upload path yet to produce
+  orphans.
 
 ## Configuration strategy
 
@@ -198,3 +197,28 @@ build`).
   see ROADMAP.md.
 - **No global state/data-fetching library.** Not justified yet by the
   amount of shared state or fetching complexity.
+- **Catalogue primary keys are `bigint generated always as identity`**,
+  not `uuid`, unlike `admin_users.id` (which must match
+  `auth.users.id`, a uuid, by definition). Public URLs use `slug`, not
+  the numeric id, so sequential IDs don't leak anything sensitive — and
+  identity columns avoid an extra extension dependency and keep
+  admin-facing listings naturally orderable by creation. Revisit only if
+  a concrete reason to obscure catalogue row counts emerges.
+- **`condition`/`status` are Postgres enums; `currency` is `text` with a
+  format check.** The first two are small, closed, rarely-changing sets —
+  a good enum fit. Currency is closer to configuration (a second
+  currency is a data change, not new business logic) and enums require a
+  migration to extend, so a checked `text` column was chosen instead. See
+  [DATABASE.md](DATABASE.md) for the full reasoning.
+- **Reference search uses generated, normalized columns**
+  (`primary_reference_normalized`, `reference_normalized`), not a
+  search-time `lower()`/`replace()` in every query. Computed once at
+  write time and indexed, so format differences (spacing, dashes, case)
+  between how different people write the same part number don't need
+  each query to know to normalize on the fly.
+- **No vehicle-compatibility tables yet.** `products.compatibility_notes`
+  is a deliberately-named free-text placeholder, not a schema
+  commitment. The intended normalized model (Brand → Model →
+  Generation/Engine → Year range) is documented in
+  [DATABASE.md](DATABASE.md) but not built — building it before there's
+  a concrete data source for vehicle data would be speculative.

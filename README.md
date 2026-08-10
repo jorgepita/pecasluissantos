@@ -5,10 +5,11 @@ catalogue plus an administration panel for managing products, categories,
 brands and store configuration.
 
 > **Status: foundation phase.** The application shell, design-system
-> primitives, Supabase wiring, authentication foundation and database
-> foundation exist. The product catalogue, admin CRUD, WhatsApp integration
-> and everything else business-specific is **not implemented yet** — see
-> [docs/ROADMAP.md](docs/ROADMAP.md).
+> primitives, Supabase wiring, authentication foundation, and the product
+> catalogue **data model** (categories, brands, products, images,
+> reference aliases — no UI yet) exist. The public catalogue UI, admin
+> CRUD, WhatsApp integration and everything else business-specific is
+> **not implemented yet** — see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Full architecture and rationale live in [`docs/`](docs/):
 
@@ -62,14 +63,14 @@ currently no live data to fetch anyway (foundation phase).
 ## Database
 
 SQL migrations live in [`supabase/migrations/`](supabase/migrations/). A
-Supabase project has been provisioned and connected, and both foundation
-migrations (`admin_users`/`is_admin()`, `store_settings`) have been
-applied and manually verified against the live project — tables,
-function, RLS enablement, and all four policies confirmed present. See
-[docs/DATABASE.md](docs/DATABASE.md) for schema details, the verification
-checklist, and how to bootstrap the first admin user. If you're pointing
-this app at a different Supabase project, apply the migrations in order
-via the Supabase SQL editor or CLI.
+Supabase project has been provisioned and connected. Migrations 0001-0002
+(admin/store foundation) are applied and were manually verified against
+the live project. Migrations 0003-0009 (product catalogue foundation)
+are new — see the Phase 1A completion report (in project history) for
+whether they were applied to the live project in your case, or apply
+them yourself in order via the Supabase SQL editor or CLI. See
+[docs/DATABASE.md](docs/DATABASE.md) for full schema details and how to
+bootstrap the first admin user.
 
 ## Deployment
 

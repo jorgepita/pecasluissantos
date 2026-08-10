@@ -4,7 +4,7 @@ Planned development phases. This is a sequencing guide, not a commitment
 to exact scope within each phase — later phases will get their own
 detailed planning when they start.
 
-## Phase 0 — Foundation (this phase, complete)
+## Phase 0 — Foundation (complete)
 
 - React/Vite/TypeScript project, Tailwind CSS v4, oxlint + Prettier.
 - Application shell with public/admin route separation.
@@ -25,23 +25,39 @@ admin dashboard content, product image upload, WhatsApp integration, AI
 image recognition, payments, orders, customer accounts, marketplace
 integrations, stock management, CI/CD deployment.
 
-## Phase 1 — Public catalogue (read-only)
+## Phase 1A — Product catalogue data model (complete)
 
-- Migrate `categories`, `brands`, `products`, `product_images` (schema
-  proposed in DATABASE.md, refine as needed).
-- Supabase Storage bucket + policies for product images (design already
-  sketched in ARCHITECTURE.md).
-- Catalogue listing page, filters (category/brand/availability), search.
-- Product detail page.
+- Migrated `categories`, `brands`, `products`, `product_images`,
+  `product_reference_aliases` (see DATABASE.md for the full schema,
+  relationships, indexes and RLS).
+- `product_condition`, `product_status`, `product_reference_type` enums.
+- Reference normalization (generated, indexed columns) for
+  format-insensitive part-number search.
+- Supabase Storage bucket (`product-images`) + RLS policies for
+  admin-only writes / public reads.
+- `src/types/database.ts` extended with the catalogue schema (hand-written,
+  no codegen toolchain introduced).
+- No catalogue UI, admin CRUD, or seed data — data/storage foundation
+  only, per phase scope.
+
+## Phase 1B — Public catalogue UI (read-only)
+
+- Catalogue listing page, filters (category/brand/availability), search
+  (by name, primary reference, and alternative reference via
+  `product_reference_aliases`).
+- Product detail page, including images from the `product-images` bucket.
 - Wire `PublicLayout`/`HomePage` to live `store_settings` via
   `getStoreConfig()` instead of `DEFAULT_STORE_CONFIG`.
+- First `services/` functions reading the catalogue tables (respecting
+  the `status = 'available'` public-visibility rule already enforced by
+  RLS — see DATABASE.md).
 - Introduce Vitest + React Testing Library once there's real logic
   (filtering, availability display, etc.) worth unit testing.
 
 ## Phase 2 — Admin CRUD
 
 - Admin dashboard: product list, create/edit/delete forms.
-- Multi-image upload UI on top of the Storage bucket from Phase 1.
+- Multi-image upload UI on top of the Storage bucket from Phase 1A.
 - Category/brand management screens.
 - Store settings management screen (finally populates `store_settings`
   from the UI instead of the SQL editor).
