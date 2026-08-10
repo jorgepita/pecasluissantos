@@ -1,18 +1,22 @@
 # Peças Luís Santos
 
-A modern, lightweight automotive-parts management platform: a public parts
-catalogue plus an administration panel for managing products, categories,
-brands and store configuration.
+A modern, lightweight automotive-parts management platform. **The current
+customer flow, by design, is catalogue → product detail → contact**:
+browse the public parts catalogue, open a product, and contact the store
+about it. There is intentionally no cart, checkout, online payment,
+customer account, or order management in this version — see
+[docs/ROADMAP.md](docs/ROADMAP.md) for what's deferred and why.
 
 > **Status**: the application shell, Supabase wiring, authentication
 > foundation, the product catalogue data model, a **read-only public
 > catalogue** (browse, search, filter, product detail — at `/produtos`),
-> and a full **admin panel** (`/admin`: categories, brands, products,
-> product images, reference aliases, store settings) all exist. The
-> storefront header/footer render live `store_settings`. Per-product
-> WhatsApp reservation, payments, orders, customer accounts and
-> everything else business-specific beyond browsing/management is **not
-> implemented yet** — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> a full **admin panel** (`/admin`: categories, brands, products, product
+> images, reference aliases, store settings), and a **product-page contact
+> CTA** (WhatsApp/phone, pre-filled with the product's name and
+> reference) all exist. The storefront header/footer render live
+> `store_settings`. Payments, orders, customer accounts and everything
+> else business-specific beyond browsing/contact is **not implemented
+> yet** — see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Full architecture and rationale live in [`docs/`](docs/):
 

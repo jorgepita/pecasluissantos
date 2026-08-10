@@ -1,15 +1,19 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { Badge } from '@/components/ui/Badge';
 import { useProductDetail } from '@/features/catalogue/useProductDetail';
 import { ProductGallery } from '@/features/catalogue/components/ProductGallery';
 import { ConditionBadge } from '@/features/catalogue/components/ConditionBadge';
+import { ProductContactActions } from '@/features/catalogue/components/ProductContactActions';
 import { formatPrice, referenceTypeLabel } from '@/features/catalogue/format';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
+import type { PublicLayoutContext } from '@/layouts/PublicLayout';
 
 export function ProductDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const { product, error } = useProductDetail(slug);
+  // Already fetched once by PublicLayout — reused here, not re-fetched.
+  const { storeConfig } = useOutletContext<PublicLayoutContext>();
 
   if (product === undefined) {
     return (
@@ -67,6 +71,15 @@ export function ProductDetailPage() {
           <p className="mt-4 text-2xl font-semibold text-slate-900">
             {formatPrice(product.price, product.currency)}
           </p>
+
+          <ProductContactActions
+            product={{
+              name: product.name,
+              primaryReference: product.primaryReference,
+              slug: product.slug,
+            }}
+            storeConfig={storeConfig}
+          />
 
           {product.shortDescription && (
             <p className="mt-3 text-slate-600">{product.shortDescription}</p>

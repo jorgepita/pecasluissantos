@@ -3,10 +3,13 @@ import { Outlet, Link } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { DEFAULT_STORE_CONFIG, getStoreConfig } from '@/services/storeConfigService';
 import type { StoreConfig } from '@/types/store-config';
+import { buildWhatsAppUrl } from '@/utils/whatsapp';
 
-/** wa.me expects digits only (country code + number, no +/spaces/dashes). */
-function whatsappHref(number: string): string {
-  return `https://wa.me/${number.replace(/[^0-9]/g, '')}`;
+/** Shape passed down to every public route via `<Outlet context>` — read
+ * with `useOutletContext<PublicLayoutContext>()` (see
+ * `ProductDetailPage.tsx`) instead of re-fetching `store_settings`. */
+export interface PublicLayoutContext {
+  storeConfig: StoreConfig;
 }
 
 /**
@@ -14,7 +17,10 @@ function whatsappHref(number: string): string {
  * footer with contact details, opening hours and social links — all from
  * the live `store_settings` row via `getStoreConfig()` (which already
  * falls back to `DEFAULT_STORE_CONFIG` on a missing row or error, so this
- * component doesn't need its own empty-state handling).
+ * component doesn't need its own empty-state handling). The same fetched
+ * config is handed to child routes via Outlet context, so a page like
+ * `ProductDetailPage` that also needs it (e.g. for the contact CTA)
+ * doesn't issue a second `store_settings` request.
  *
  * `primary_color`/`secondary_color` are deliberately NOT applied here —
  * see docs/ARCHITECTURE.md ("Configuration strategy"): wiring up runtime
@@ -56,7 +62,7 @@ export function PublicLayout() {
       </header>
 
       <main className="flex-1">
-        <Outlet />
+        <Outlet context={{ storeConfig: config } satisfies PublicLayoutContext} />
       </main>
 
       <footer className="border-t border-slate-200 bg-white">
@@ -88,7 +94,7 @@ export function PublicLayout() {
             {config.whatsappNumber && (
               <p className="mt-1">
                 <a
-                  href={whatsappHref(config.whatsappNumber)}
+                  href={buildWhatsAppUrl(config.whatsappNumber)}
                   target="_blank"
                   rel="noreferrer"
                   className="hover:underline"

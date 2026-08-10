@@ -220,6 +220,59 @@ installed postgrest-js source before applying it project-wide, and by the
 full admin CRUD build succeeding afterward with zero `as any`/`as never`
 casts needed anywhere in the new code.
 
+## Contact flow (Phase 3)
+
+**Product scope for this version, stated explicitly because it shapes
+every decision below**: `catalogue → product detail → contact`. No cart,
+no checkout, no online payments, no customer accounts, no order
+management. This phase adds only the last step — a "request more info"
+action on the product detail page — not a reservation or ordering
+system. Nothing here writes to the database: no row is created, no stock
+is touched, no product status changes as a side effect of a customer
+clicking the CTA.
+
+- **`ProductContactActions`** (`src/features/catalogue/components/`):
+  renders on `/produtos/:slug`, right under the price. WhatsApp is the
+  primary action whenever `store_settings.whatsapp_number` is set
+  (pre-filled with a PT-PT message containing the product name,
+  `primary_reference`, and a link back to the product page — no internal
+  database id, ever). If only `phone` is set, a `tel:` link becomes the
+  primary action instead. If both are set, phone becomes a secondary
+  "Ligar" action alongside WhatsApp. If neither is configured, a plain
+  unobtrusive notice renders — never a dead/broken button.
+- **No new database field, table, or RLS policy.** Reuses
+  `store_settings.whatsapp_number`/`phone`/`store_name` exactly as they
+  already exist (see [DATABASE.md](DATABASE.md)). The CTA only ever
+  appears on a product detail page that RLS already decided is publicly
+  visible (`status = 'available'`) — an unpublished product's page
+  renders `NotFoundPage` before `ProductContactActions` is ever reached,
+  so there's no separate "don't show this for draft products" check to
+  get wrong.
+- **`src/utils/whatsapp.ts`** (`normalizeWhatsAppNumber`,
+  `buildWhatsAppUrl`, `buildTelUrl`): one shared implementation for
+  turning a phone number as an admin typed it (spaces, `+351`,
+  parentheses, hyphens — all just non-digit noise to strip) into a working
+  link. `PublicLayout`'s existing footer WhatsApp link was refactored to
+  use this too, rather than keeping its own inline version — the same
+  formatting problem, solved once. **Known, undocumented-until-now edge
+  case**: a leading international `00` prefix (e.g. `00351...`) is not
+  stripped, since `wa.me` expects the bare country code. Not handled —
+  the admin settings form's own hint text already guides entry as
+  `351912345678` (no `00`, no `+`), and the task's explicit formatting
+  list didn't include it. Revisit only if it turns out to be a real data
+  entry pattern.
+- **`PublicLayoutContext`**: `PublicLayout` already fetches
+  `store_settings` once per page load for the header/footer; it now also
+  hands that same fetched `StoreConfig` to child routes via
+  `<Outlet context={{ storeConfig }}>`, read in `ProductDetailPage` with
+  `useOutletContext<PublicLayoutContext>()`. This is router-native prop
+  passing, not a new state-management dependency — avoids
+  `ProductDetailPage` issuing a second, redundant `store_settings`
+  request for data the layout already has.
+- **Mobile**: a plain `<a target="_blank">` to `wa.me` — mobile browsers
+  already hand `wa.me` links to the WhatsApp app when installed (or the
+  web fallback otherwise); no extra JS/user-agent detection needed.
+
 ## Supabase architecture
 
 - **Client**: `src/lib/supabase.ts` creates a single `supabase-js` client
@@ -411,3 +464,14 @@ restrict` vs. intentional cascade) — the admin UI mirrors that rather
   than offering one uniform "delete" action everywhere.
 - **No drag-and-drop library for product image ordering.** Up/down
   buttons swapping `sort_order` cover the need without a new dependency.
+- **The product contact CTA is a link-builder, not a data write.**
+  Deliberately modeled as "construct a `wa.me`/`tel:` URL from data
+  already public on the page," with no new table (a "contact requests"
+  table was explicitly out of scope) and no side effect on `products` —
+  keeps the future order system free to be designed on its own terms
+  instead of growing out of a contact button.
+- **`store_settings` fetched once per page load, shared via Outlet
+  context** rather than fetched again by `ProductDetailPage`. First use
+  of `<Outlet context>` in this codebase — still not a global state
+  library, just router-native parent-to-child data passing for data the
+  parent layout already had.

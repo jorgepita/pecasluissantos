@@ -57,6 +57,7 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │       ├── ProductCard.tsx, ProductGrid.tsx, ProductCardSkeleton.tsx
 │   │       ├── ProductFilters.tsx, CategoryList.tsx
 │   │       ├── ProductGallery.tsx, ConditionBadge.tsx, CatalogueImage.tsx
+│   │       └── ProductContactActions.tsx    WhatsApp/phone contact CTA (Phase 3, no DB write)
 │   │
 │   ├── features/admin/                Admin CRUD: queries, hooks, admin-only components (Phase 2)
 │   │   ├── shared/
@@ -84,7 +85,9 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │   └── store-config.ts                 App-facing StoreConfig shape
 │   │
 │   ├── utils/
-│   │   └── cn.ts                          Tiny classnames-join helper (no dependency)
+│   │   ├── cn.ts                          Tiny classnames-join helper (no dependency)
+│   │   └── whatsapp.ts                     wa.me/tel: URL builders, shared by PublicLayout and
+│   │                                        ProductContactActions (one formatting implementation)
 │   │
 │   └── styles/
 │       └── global.css                      Tailwind import + design tokens (@theme) + base styles
@@ -124,6 +127,16 @@ and (for reference-type labels and the category tree helper)
 data-fetching library — same plain hooks + `async`/`await` pattern as
 `features/catalogue/`, per [ARCHITECTURE.md](ARCHITECTURE.md)'s standing
 decision.
+
+## Phase 3 note
+
+The product-page contact CTA (`ProductContactActions.tsx`,
+`utils/whatsapp.ts`) was added in Phase 3. No new directory — it lives in
+`features/catalogue/` because it's product-detail-page UI, and no new
+table/service, because it's a pure link-builder with no Supabase write.
+`PublicLayout` now passes its already-fetched `store_settings` down via
+`<Outlet context>` rather than `ProductDetailPage` fetching it again — the
+first use of Outlet context in this codebase.
 
 ## Deviations from the originally sketched structure, and why
 

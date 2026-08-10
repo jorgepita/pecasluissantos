@@ -104,11 +104,25 @@ integrations, stock management, CI/CD deployment.
   payments, orders, customer accounts, stock-management workflow beyond
   the existing `stock_quantity` field, statistics/reporting.
 
-## Phase 3 — Customer-facing contact flow
+## Phase 3 — Customer-facing contact flow (contact CTA complete)
 
-- WhatsApp contact/reservation button on product detail pages, using
-  `store_settings.whatsapp_number`.
-- Mobile-first polish pass on catalogue + product pages.
+The current product scope for this version is intentionally
+`catalogue → product detail → contact` — no cart, checkout, online
+payments, customer accounts, or order management. Those may come later,
+but as their own phase, not grown out of this one.
+
+- **Done**: "Contactar sobre este artigo" CTA on `/produtos/:slug` —
+  WhatsApp (pre-filled with product name + reference + link) as the
+  primary action when `store_settings.whatsapp_number` is set, `tel:` as
+  the primary action when only `phone` is set, phone as a secondary
+  action when both are set, an unobtrusive notice when neither is
+  configured. No order, reservation, or stock side effect — see
+  [ARCHITECTURE.md](ARCHITECTURE.md) ("Contact flow"). Note this is
+  deliberately named a _contact_ action, not a _reservation_ one — an
+  earlier version of this roadmap entry said "reservation," which this
+  phase's actual scope explicitly ruled out.
+- **Not done**: mobile-first polish pass on catalogue + product pages
+  beyond what Phase 1B already shipped responsively — still open.
 
 ## Phase 4 — Deployment automation
 
