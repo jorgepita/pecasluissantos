@@ -1,0 +1,72 @@
+/*
+ * Global styles and design tokens.
+ *
+ * This file is the single source of truth for the visual design system
+ * foundation (colours, typography, spacing hooks). Components should use
+ * these Tailwind utility tokens rather than one-off hex values.
+ *
+ * Note: `store_settings.primary_color` / `secondary_color` (see
+ * docs/DATABASE.md) are reserved for a *future* dynamic theming feature
+ * (letting an admin recolour the storefront). They are not wired up yet —
+ * the tokens below are the static brand palette used until then.
+ */
+
+@import 'tailwindcss';
+
+@theme {
+  /* Brand palette: deep blue (trust/technical) + amber accent (action/energy),
+     tuned for an automotive-parts storefront. */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+
+  /* Semantic colours for availability badges and form/status feedback. */
+  --color-success-50: #f0fdf4;
+  --color-success-500: #22c55e;
+  --color-success-700: #15803d;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-500: #ef4444;
+  --color-danger-700: #b91c1c;
+
+  /* System font stack: no external font request, fast first paint. */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight text-slate-900;
+  }
+}
