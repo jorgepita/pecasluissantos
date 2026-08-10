@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { HomePage } from '@/pages/public/HomePage';
+import { CataloguePage } from '@/pages/public/CataloguePage';
+import { ProductDetailPage } from '@/pages/public/ProductDetailPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { LoginPage } from '@/pages/admin/LoginPage';
 import { DashboardPage } from '@/pages/admin/DashboardPage';
@@ -17,6 +19,8 @@ export function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/produtos" element={<CataloguePage />} />
+        <Route path="/produtos/:slug" element={<ProductDetailPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

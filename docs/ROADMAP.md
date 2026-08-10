@@ -40,19 +40,33 @@ integrations, stock management, CI/CD deployment.
 - No catalogue UI, admin CRUD, or seed data — data/storage foundation
   only, per phase scope.
 
-## Phase 1B — Public catalogue UI (read-only)
+## Phase 1B — Public catalogue UI (read-only) (complete)
 
-- Catalogue listing page, filters (category/brand/availability), search
-  (by name, primary reference, and alternative reference via
-  `product_reference_aliases`).
-- Product detail page, including images from the `product-images` bucket.
-- Wire `PublicLayout`/`HomePage` to live `store_settings` via
-  `getStoreConfig()` instead of `DEFAULT_STORE_CONFIG`.
-- First `services/` functions reading the catalogue tables (respecting
-  the `status = 'available'` public-visibility rule already enforced by
-  RLS — see DATABASE.md).
-- Introduce Vitest + React Testing Library once there's real logic
-  (filtering, availability display, etc.) worth unit testing.
+- `/produtos` listing: search (name, primary reference, and alternative
+  references via `product_reference_aliases`), filters (category, brand,
+  condition), `range()`-based "load more" pagination.
+- `/produtos/:slug` product detail: images (from the `product-images`
+  bucket, with a primary-image/gallery concept), reference aliases,
+  category/brand, price, condition.
+- `/` rewritten from the foundation-phase design preview into a real
+  landing page (hero + active top-level categories as entry points).
+- `PublicLayout` wired to live `store_settings` via `getStoreConfig()`
+  (name, logo, phone, email, WhatsApp contact link, address, opening
+  hours, social links) — `DEFAULT_STORE_CONFIG` is now only the loading/
+  missing-row fallback, not what's always rendered.
+- `src/features/catalogue/` (queries, hooks, components) — no
+  `src/types/database.ts` changes needed (existing row types covered it).
+- Bug found and fixed: `src/lib/env.ts` was returning an empty-string
+  fallback for missing Supabase env vars, which crashed the whole app at
+  import time (`createClient()` throws on an empty URL/key) — see
+  ARCHITECTURE.md.
+- **Not done** (still deferred, on purpose): `primary_color`/
+  `secondary_color` dynamic theming (Phase 0's standing deferral, not
+  revisited), Vitest/RTL (still no business logic complex enough to
+  justify it over manual + type-checked verification — reconsider once
+  Phase 2's admin forms add real validation logic), full-text/trigram
+  search (current `ilike`-based search is adequate for a small
+  catalogue).
 
 ## Phase 2 — Admin CRUD
 

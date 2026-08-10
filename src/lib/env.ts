@@ -35,8 +35,15 @@ function readEnv(): ClientEnv {
   }
 
   return {
-    supabaseUrl: supabaseUrl ?? '',
-    supabaseAnonKey: supabaseAnonKey ?? '',
+    // A syntactically-valid placeholder when unset — NOT an empty string.
+    // `@supabase/supabase-js`'s `createClient()` throws synchronously on an
+    // empty/invalid URL or key, which would crash the whole app at import
+    // time (before React even mounts, so no error boundary can catch it),
+    // defeating the "log and don't crash" behaviour documented above.
+    // Queries against this placeholder simply fail as network errors,
+    // which calling code already has to handle regardless.
+    supabaseUrl: supabaseUrl || 'https://misconfigured.invalid.supabase.co',
+    supabaseAnonKey: supabaseAnonKey || 'misconfigured',
   };
 }
 

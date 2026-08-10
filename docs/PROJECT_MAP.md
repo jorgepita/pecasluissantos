@@ -22,19 +22,37 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │
 │   ├── components/ui/               Design-system primitives, framework-agnostic to features
 │   │   ├── Button.tsx, Input.tsx, Card.tsx, Badge.tsx, Container.tsx
+│   │   └── buttonStyles.ts             Button's classes, exported separately so a non-<button>
+│   │                                    (e.g. a CTA <Link>) can reuse them without breaking
+│   │                                    Fast Refresh (a component file must only export components)
 │   │
 │   ├── layouts/                     Page shells composed with react-router's <Outlet />
 │   │   ├── PublicLayout.tsx           Header/footer for storefront pages
 │   │   └── AdminLayout.tsx             Minimal chrome for admin pages
 │   │
 │   ├── pages/                        Route-level components — one file per route
-│   │   ├── public/HomePage.tsx          Foundation-phase landing/style preview (not the catalogue)
+│   │   ├── public/HomePage.tsx          Catalogue landing: hero + active top-level categories
+│   │   ├── public/CataloguePage.tsx       @ /produtos — search + filters + product grid
+│   │   ├── public/ProductDetailPage.tsx    @ /produtos/:slug
 │   │   ├── public/NotFoundPage.tsx
 │   │   ├── admin/LoginPage.tsx           Real Supabase Auth sign-in form
 │   │   └── admin/DashboardPage.tsx        Placeholder behind RequireAuth
 │   │
 │   ├── features/auth/                 Auth as a feature module (session context + guard)
 │   │   ├── AuthContext.tsx, AuthProvider.tsx, useAuth.ts, RequireAuth.tsx
+│   │
+│   ├── features/catalogue/            Public catalogue: queries, hooks, catalogue-only components
+│   │   ├── api.ts                       Every Supabase call (categories/brands/products/images/aliases)
+│   │   ├── types.ts                      View types (ProductListItem, ProductDetail, CategoryNode, ...)
+│   │   ├── format.ts                      formatPrice(), referenceTypeLabel()
+│   │   ├── buildCategoryTree.ts             Flat rows -> tree (+ flatten for indented <select>)
+│   │   ├── useCategories.ts, useBrands.ts    Small fetch-state hooks
+│   │   ├── useProductList.ts               Drives /produtos (filters + range()-based "load more")
+│   │   ├── useProductDetail.ts
+│   │   └── components/
+│   │       ├── ProductCard.tsx, ProductGrid.tsx, ProductCardSkeleton.tsx
+│   │       ├── ProductFilters.tsx, CategoryList.tsx
+│   │       ├── ProductGallery.tsx, ConditionBadge.tsx, CatalogueImage.tsx
 │   │
 │   ├── services/                      Functions that talk to Supabase, one per concern
 │   │   └── storeConfigService.ts        Reads store_settings, falls back to defaults
@@ -73,16 +91,15 @@ Deviations from a "textbook" structure are called out with the reasoning.
     ├── ARCHITECTURE.md, DATABASE.md, PROJECT_MAP.md (this file), ROADMAP.md
 ```
 
-## Phase 1A note
+## Phase 1B note
 
-The product catalogue database schema (`categories`, `brands`, `products`,
-`product_images`, `product_reference_aliases`) and its Supabase Storage
-bucket exist as of Phase 1A — see [DATABASE.md](DATABASE.md). There is
-deliberately no `src/features/catalogue/`, `src/services/*` catalogue
-service, or catalogue page yet: this phase built the data foundation only,
-not the UI or the read/write functions that would consume it. Those
-arrive with the catalogue-UI phase, following the same shape as
-`features/auth/` and `services/storeConfigService.ts`.
+The public catalogue UI (`features/catalogue/`, the three `pages/public/`
+catalogue routes, and the live-`store_settings` `PublicLayout`) was built
+in Phase 1B, on top of the Phase 1A data/storage foundation
+([DATABASE.md](DATABASE.md)). Still deliberately absent: any admin
+CRUD screen, an admin `features/`/`services/` module, and a data-fetching
+library (still plain hooks + `async`/`await`, per
+[ARCHITECTURE.md](ARCHITECTURE.md)'s standing decision).
 
 ## Deviations from the originally sketched structure, and why
 
@@ -91,10 +108,11 @@ arrive with the catalogue-UI phase, following the same shape as
   `features/auth/`. An empty `hooks/` directory would have no purpose
   yet. Add it back if/when a hook emerges that isn't feature-specific
   (e.g. a generic `useDebounce`).
-- **`features/` currently has one subfolder (`auth`).** Nothing else is
-  built yet that warrants a feature module — the catalogue, cart/reserve
-  flow, etc. will each get their own `features/<name>/` when they're
-  built, following the same shape as `auth`.
+- **`features/` currently has two subfolders (`auth`, `catalogue`).**
+  Each self-contained slice of business functionality — its own state/
+  hooks, components, and Supabase calls — gets its own `features/<name>/`
+  when it's built, following that same shape. A future cart/reserve flow
+  would get one too, rather than being bolted onto an existing feature.
 - **No `hooks/`, `utils/` beyond `cn.ts`.** Kept minimal on purpose —
   utilities get added when a second, third use case actually needs them,
   not speculatively.

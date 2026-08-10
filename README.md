@@ -4,12 +4,13 @@ A modern, lightweight automotive-parts management platform: a public parts
 catalogue plus an administration panel for managing products, categories,
 brands and store configuration.
 
-> **Status: foundation phase.** The application shell, design-system
-> primitives, Supabase wiring, authentication foundation, and the product
-> catalogue **data model** (categories, brands, products, images,
-> reference aliases — no UI yet) exist. The public catalogue UI, admin
-> CRUD, WhatsApp integration and everything else business-specific is
-> **not implemented yet** — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status**: the application shell, Supabase wiring, authentication
+> foundation, the product catalogue data model, and a **read-only public
+> catalogue** (browse, search, filter, product detail — at `/produtos`)
+> exist. The storefront header/footer render live `store_settings`. Admin
+> CRUD, per-product WhatsApp reservation, and everything else
+> business-specific beyond browsing is **not implemented yet** — see
+> [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Full architecture and rationale live in [`docs/`](docs/):
 
@@ -56,9 +57,12 @@ variable — anything with that prefix is bundled into the public,
 client-side JavaScript. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for the full security model.
 
-If the app runs without these variables set, it still builds and starts,
-but logs a console error and any Supabase call will fail — there is
-currently no live data to fetch anyway (foundation phase).
+If the app runs without these variables set, it still builds and starts —
+it logs a console error and every Supabase call fails (the catalogue
+pages show their error state) rather than crashing. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ("Bug found and fixed
+during this phase") for why this needed a real fix, not just a comment
+saying it should work this way.
 
 ## Database
 

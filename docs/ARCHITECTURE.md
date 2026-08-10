@@ -57,6 +57,87 @@ discussed before being made.
   library has been introduced; add one (e.g. TanStack Query) only once
   there's enough real fetching/caching complexity to justify it.
 
+## Public catalogue (Phase 1B)
+
+Routes: `/` (landing — hero + active top-level categories as entry
+points), `/produtos` (listing — search + filters), `/produtos/:slug`
+(detail). Filters/search live in URL query params
+(`?categoria=&marca=&condicao=&q=`), not their own routes — bookmarkable,
+and matches the `/produtos/<slug>` shape [DATABASE.md](DATABASE.md)
+already documented before this phase existed.
+
+- **`src/features/catalogue/`** holds every catalogue Supabase call
+  (`api.ts`), view types not already in `types/database.ts` (`types.ts`),
+  a pure flat-list→tree helper (`buildCategoryTree.ts`), three small
+  fetch-state hooks (`useCategories`, `useBrands`, `useProductList`,
+  `useProductDetail`), and presentation components
+  (`components/ProductCard`, `ProductGrid`, `ProductFilters`,
+  `CategoryList`, `ProductGallery`, `ConditionBadge`,
+  `ProductCardSkeleton`, `CatalogueImage`). This is a `features/` module
+  rather than a `services/` file because it has its own components, not
+  just queries — same shape as `features/auth/`, per
+  [PROJECT_MAP.md](PROJECT_MAP.md)'s own stated rule. `pages/public/*`
+  stay thin, composing it.
+- **No RLS-redundant filtering.** None of these queries add
+  `status = 'available'` / `is_active = true` themselves — RLS already
+  guarantees that for the anon role (see [DATABASE.md](DATABASE.md)
+  "Public visibility"). Only `is_admin()`-gated writes duplicate a
+  server-side check; public reads don't need to.
+- **Search** (`listProducts` in `api.ts`): `name ilike` OR
+  `primary_reference_normalized ilike` (client-normalized the same way
+  the DB's generated column is: uppercase, strip non-alphanumerics) OR
+  `id in (...)` for products matched only via
+  `product_reference_aliases`. All three combined into one `.or()` call
+  so server-side `range()` pagination stays correct; the raw user search
+  term is escaped for PostgREST's `.or()` grammar (comma/parenthesis/quote
+  quoting) since it's the one value here that isn't already constrained to
+  a safe character set. **Known limitation**: `ilike '%term%'` (leading
+  wildcard) isn't index-accelerated — acceptable for a small catalogue,
+  revisit (e.g. `pg_trgm`) only if it measurably isn't once the catalogue
+  has real volume. No full-text/trigram infrastructure was added now —
+  out of scope for this phase and Phase 1A's schema is closed.
+- **Pagination**: `range()`-based "load more" (fixed page size, results
+  appended), not page-number pagination. When a search term is active,
+  results are still fetched via the same paginated query — the search
+  predicate is just additional `.or()` conditions on the same
+  `range()`-scoped request, not a separate unpaginated path.
+- **Images**: `supabase.storage.from('product-images').getPublicUrl(path)`
+  — synchronous URL construction, no network call, since the bucket is
+  public. `CatalogueImage` handles both "no image at all" and "the object
+  failed to load" with the same inline fallback (no placeholder-image
+  dependency). Primary image = `is_primary`, tie-broken by `sort_order`.
+- **Store settings are now live**: `PublicLayout` calls the existing
+  `getStoreConfig()` on mount (local `useState`, no new context — only
+  this component needs it). Renders name, logo, phone, email, WhatsApp
+  (as a `wa.me` contact link — display only, not the future ordering
+  workflow from ROADMAP.md Phase 3), address, opening hours, and social
+  links, all conditionally.
+- **`primary_color`/`secondary_color` remain unwired**, on purpose —
+  reaffirming the Phase 0 decision below, not revisiting it. If dynamic
+  theming becomes a real requirement, it needs its own design pass, not a
+  side effect of building the catalogue UI.
+
+### Bug found and fixed during this phase
+
+`src/lib/env.ts` returned an **empty string** as the fallback for a
+missing `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`, and
+`src/lib/supabase.ts` calls `createClient()` with that value at module
+scope (import time). `@supabase/supabase-js` throws synchronously on an
+empty URL/key (`"supabaseUrl is required."` /
+`"supabaseKey is required."`) — which crashed the entire app before React
+even mounted (no error boundary can catch a throw during module
+evaluation) whenever the app ran without credentials configured. This
+directly contradicted `env.ts`'s own documented intent ("fail loudly in
+the console... but don't throw at module scope"). Fixed by falling back
+to a syntactically-valid placeholder URL/key instead of an empty string —
+`createClient()` no longer throws, and any query issued against the
+placeholder simply fails as a network error, which the catalogue hooks
+already handle (loading → error state). Verified directly: reproduced the
+throw with a standalone Node script calling `createClient('', '')`
+against the installed `@supabase/supabase-js`, confirmed the fix stops
+it. Present since Phase 0; found via this phase's required
+dev-server smoke check, not a regression introduced by Phase 1B or 1A.
+
 ## Supabase architecture
 
 - **Client**: `src/lib/supabase.ts` creates a single `supabase-js` client
@@ -138,12 +219,12 @@ hardcoded:
   read the live row and fall back to `DEFAULT_STORE_CONFIG` if none
   exists yet or the request fails.
 
-**Current limitation**: the UI shell (`PublicLayout`, `HomePage`) renders
-`DEFAULT_STORE_CONFIG` directly rather than calling `getStoreConfig()`,
-because there's no admin settings screen yet to populate a real row and
-no data would exist to fetch. Wiring the shell to live config is a
-next-phase task once that screen exists (see ROADMAP.md) — at that point
-`getStoreConfig()` already has the right shape and fallback behaviour.
+**Resolved in Phase 1B**: `PublicLayout` now calls `getStoreConfig()` on
+mount and renders the live row (falling back to `DEFAULT_STORE_CONFIG`
+while loading and if no row exists yet — unchanged behaviour from before,
+just actually wired up now). There is still no admin settings screen to
+populate a real row from the UI — until one exists (Phase 2), the row is
+created/edited via the Supabase SQL editor, same as today.
 
 The repository/package name (`pecasluissantos` /
 `pecas-luis-santos`) is a technical identifier, not necessarily the final
@@ -222,3 +303,17 @@ build`).
   Generation/Engine → Year range) is documented in
   [DATABASE.md](DATABASE.md) but not built — building it before there's
   a concrete data source for vehicle data would be speculative.
+- **`features/catalogue/` instead of a `services/` file.** Unlike
+  `storeConfigService.ts` (one function, no dedicated UI), the catalogue
+  has its own hooks and components as well as queries — the shape
+  `PROJECT_MAP.md` already assigns to a `features/<name>/` module.
+- **Catalogue search combines `.ilike()` and a raw `.or()` string, with
+  manual escaping** for the one value that needs it (arbitrary user
+  text), rather than reaching for `pg_trgm`/full-text search. Deliberately
+  minimal: correct for a small catalogue, and Phase 1A's schema is closed
+  for this phase — a real search-performance need would be a reason to
+  reopen it later, not a reason to add unused infrastructure now.
+- **`src/lib/env.ts` falls back to a placeholder URL/key, not an empty
+  string**, when Supabase credentials are missing — fixes a real crash
+  (see "Bug found and fixed during this phase" above), keeping the
+  module's already-documented "log and don't crash" intent actually true.
