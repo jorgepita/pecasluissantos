@@ -14,6 +14,9 @@ detailed planning when they start.
 - Real Supabase Auth integration (sign-in, session context, route guard).
 - Database foundation: `admin_users` + `is_admin()`, `store_settings`,
   both with RLS from the start.
+- Supabase project provisioned, connected, and both migrations applied
+  and manually verified against the live database (tables, function, RLS,
+  and all four policies confirmed present — see DATABASE.md).
 - Documentation: README, CLAUDE.md, ARCHITECTURE.md, DATABASE.md,
   PROJECT_MAP.md, ROADMAP.md.
 

@@ -61,13 +61,15 @@ currently no live data to fetch anyway (foundation phase).
 
 ## Database
 
-SQL migrations live in [`supabase/migrations/`](supabase/migrations/).
-They are written and documented but have **not been applied to a live
-Supabase project** as part of this phase (no project was provisioned).
-To apply them to a project you control, run them in order via the
-Supabase SQL editor or the Supabase CLI. See
-[docs/DATABASE.md](docs/DATABASE.md) for schema details and how to
-bootstrap the first admin user.
+SQL migrations live in [`supabase/migrations/`](supabase/migrations/). A
+Supabase project has been provisioned and connected, and both foundation
+migrations (`admin_users`/`is_admin()`, `store_settings`) have been
+applied and manually verified against the live project — tables,
+function, RLS enablement, and all four policies confirmed present. See
+[docs/DATABASE.md](docs/DATABASE.md) for schema details, the verification
+checklist, and how to bootstrap the first admin user. If you're pointing
+this app at a different Supabase project, apply the migrations in order
+via the Supabase SQL editor or CLI.
 
 ## Deployment
 

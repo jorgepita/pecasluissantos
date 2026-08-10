@@ -4,10 +4,15 @@ This document describes the database **as it exists in
 `supabase/migrations/`**, plus a documented (not yet migrated) proposal
 for the tables the future product catalogue will need.
 
-No live Supabase project is linked to this repository as part of the
-foundation phase — the migrations below have been written and reviewed,
-but not applied against a running database. Apply them, in order, via the
-Supabase SQL editor or CLI against a project you control.
+A Supabase project has been provisioned and connected, and both
+foundation migrations have been applied to it. The live database was
+manually verified to match what's described below: `admin_users`,
+`store_settings`, and `is_admin()` exist, RLS is enabled on both tables,
+and all four expected policies are present (`admin_users_select_own`,
+`store_settings_select_public`, `store_settings_insert_admin`,
+`store_settings_update_admin`). If you're setting up a different/new
+Supabase project, apply the migrations in order via the Supabase SQL
+editor or CLI, and re-run the same checks.
 
 ## Implemented tables
 

@@ -73,9 +73,10 @@ npm run format           # prettier --write .
 
 ## Supabase migrations
 
-SQL files in `supabase/migrations/` are numbered and applied in order.
-There is no Supabase project linked to this repo by default — migrations
-are written/reviewed here but applied manually (Supabase SQL editor or
-CLI) against whichever project the developer is using. When adding a
-migration, follow the existing style: a comment block explaining the
-_why_, not just the _what_, above the SQL.
+SQL files in `supabase/migrations/` are numbered and applied in order. A
+Supabase project is provisioned and connected for this repo, and the two
+foundation migrations have been applied and manually verified against it
+(see docs/DATABASE.md). Migrations are still applied manually (Supabase
+SQL editor or CLI), not via an automated pipeline — there is no CI/CD for
+migrations yet. When adding a migration, follow the existing style: a
+comment block explaining the _why_, not just the _what_, above the SQL.

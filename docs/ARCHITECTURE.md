@@ -74,6 +74,11 @@ discussed before being made.
   with placeholder values. Real values live in `.env.local` (git-ignored)
   locally, and in whatever secret store the eventual hosting/CI uses —
   not decided yet (see ROADMAP.md).
+- **Status**: a Supabase project is provisioned and connected. Both
+  foundation migrations have been applied to it and manually verified —
+  tables, `is_admin()`, RLS enablement, and all four expected policies
+  confirmed present. See [DATABASE.md](DATABASE.md) for the verification
+  detail.
 
 ## Authentication approach
 
