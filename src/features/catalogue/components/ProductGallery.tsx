@@ -23,14 +23,16 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       />
 
       {images.length > 1 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {images.map((image, index) => (
             <button
               key={image.id}
               type="button"
               onClick={() => setSelectedIndex(index)}
+              aria-label={`Ver imagem ${index + 1} de ${images.length}`}
+              aria-current={index === selectedIndex}
               className={cn(
-                'shrink-0 overflow-hidden rounded-md border-2',
+                'shrink-0 overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700',
                 index === selectedIndex ? 'border-brand-600' : 'border-transparent',
               )}
             >

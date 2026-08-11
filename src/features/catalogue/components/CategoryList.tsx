@@ -9,7 +9,11 @@ export function CategoryList({ categories }: { categories: CategoryNode[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((category) => (
-        <Link key={category.id} to={`/produtos?categoria=${category.slug}`}>
+        <Link
+          key={category.id}
+          to={`/produtos?categoria=${category.slug}`}
+          className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+        >
           <Card className="p-5 transition-shadow hover:shadow-md">
             <h3 className="text-base font-medium text-slate-900">{category.name}</h3>
             {category.children.length > 0 && (

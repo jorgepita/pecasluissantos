@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/Input';
+import { cn } from '@/utils/cn';
 import { buildCategoryTree, flattenCategoryTree } from '../buildCategoryTree';
 import type { BrandRow, CategoryRow, ProductCondition } from '@/types/database';
 
@@ -61,13 +62,13 @@ export function ProductFilters({
   }, [localSearch, search, onSearchChange]);
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
       <Input
         type="search"
         placeholder="Pesquisar por nome ou referência..."
         value={localSearch}
         onChange={(event) => setLocalSearch(event.target.value)}
-        className="lg:col-span-2"
+        className="col-span-2"
         aria-label="Pesquisar produtos"
       />
 
@@ -102,7 +103,7 @@ export function ProductFilters({
       <select
         value={condition ?? ''}
         onChange={(event) => onConditionChange(event.target.value)}
-        className={selectClasses}
+        className={cn(selectClasses, 'col-span-2 lg:col-span-1')}
         aria-label="Filtrar por estado"
       >
         <option value="">Todos os estados</option>

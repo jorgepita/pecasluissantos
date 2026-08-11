@@ -8,20 +8,23 @@ import type { ProductListItem } from '../types';
 
 export function ProductCard({ item }: { item: ProductListItem }) {
   return (
-    <Link to={`/produtos/${item.slug}`}>
+    <Link
+      to={`/produtos/${item.slug}`}
+      className="block h-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+    >
       <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
         <CatalogueImage
           storagePath={item.primaryImagePath}
           alt={item.name}
-          className="h-40 w-full"
+          className="aspect-square w-full"
         />
 
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {item.brandName && <p className="text-xs text-slate-500">{item.brandName}</p>}
           <h3 className="mt-0.5 line-clamp-2 text-sm font-medium text-slate-900">{item.name}</h3>
           <p className="mt-1 text-xs text-slate-500">Ref. {item.primaryReference}</p>
 
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-1">
             <span className="text-base font-semibold text-slate-900">
               {formatPrice(item.price, item.currency)}
             </span>

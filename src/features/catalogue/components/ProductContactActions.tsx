@@ -56,18 +56,29 @@ export function ProductContactActions({ product, storeConfig }: ProductContactAc
     : buildTelUrl(primaryNumber);
 
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-3">
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
       <a
         href={primaryHref}
         target={isWhatsAppPrimary ? '_blank' : undefined}
         rel={isWhatsAppPrimary ? 'noreferrer' : undefined}
-        className={cn(buttonBaseClasses, buttonVariantClasses.primary)}
+        className={cn(
+          buttonBaseClasses,
+          buttonVariantClasses.primary,
+          'w-full justify-center sm:w-auto',
+        )}
       >
         Contactar sobre este artigo
       </a>
 
       {isWhatsAppPrimary && phone && (
-        <a href={buildTelUrl(phone)} className={cn(buttonBaseClasses, buttonVariantClasses.ghost)}>
+        <a
+          href={buildTelUrl(phone)}
+          className={cn(
+            buttonBaseClasses,
+            buttonVariantClasses.ghost,
+            'w-full justify-center sm:w-auto',
+          )}
+        >
           Ligar: {phone}
         </a>
       )}

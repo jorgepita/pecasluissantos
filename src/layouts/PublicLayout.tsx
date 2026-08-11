@@ -3,7 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { DEFAULT_STORE_CONFIG, getStoreConfig } from '@/services/storeConfigService';
 import type { StoreConfig } from '@/types/store-config';
-import { buildWhatsAppUrl } from '@/utils/whatsapp';
+import { buildTelUrl, buildWhatsAppUrl } from '@/utils/whatsapp';
 
 /** Shape passed down to every public route via `<Outlet context>` — read
  * with `useOutletContext<PublicLayoutContext>()` (see
@@ -46,15 +46,25 @@ export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-slate-200 bg-white">
-        <Container className="flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+        <Container className="flex h-16 items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-2 rounded-md text-lg font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+          >
             {config.logoUrl && (
-              <img src={config.logoUrl} alt="" className="h-8 w-8 rounded object-contain" />
+              <img
+                src={config.logoUrl}
+                alt=""
+                className="h-8 w-8 shrink-0 rounded object-contain"
+              />
             )}
-            {config.storeName}
+            <span className="truncate">{config.storeName}</span>
           </Link>
           <nav className="text-sm">
-            <Link to="/produtos" className="text-slate-600 hover:text-slate-900">
+            <Link
+              to="/produtos"
+              className="-mx-3 rounded-md px-3 py-2 text-slate-600 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+            >
               Catálogo
             </Link>
           </nav>
@@ -66,27 +76,39 @@ export function PublicLayout() {
       </main>
 
       <footer className="border-t border-slate-200 bg-white">
-        <Container className="grid gap-8 py-10 text-sm text-slate-500 sm:grid-cols-2">
-          <div>
+        <Container className="grid gap-8 py-8 text-sm text-slate-500 sm:grid-cols-2 sm:py-10">
+          <div className="min-w-0">
             <p className="font-medium text-slate-700">{config.storeName}</p>
-            {config.address && <p className="mt-1">{config.address}</p>}
+            {config.address && <p className="mt-1 break-words">{config.address}</p>}
             {openingHoursEntries.length > 0 && (
               <dl className="mt-2 space-y-0.5">
                 {openingHoursEntries.map(([day, hours]) => (
-                  <div key={day} className="flex gap-2">
-                    <dt className="w-28 shrink-0">{day}</dt>
-                    <dd>{hours}</dd>
+                  <div key={day} className="flex flex-wrap gap-x-2">
+                    <dt className="shrink-0">{day}:</dt>
+                    <dd className="break-words">{hours}</dd>
                   </div>
                 ))}
               </dl>
             )}
           </div>
 
-          <div>
-            {config.phone && <p>Tel: {config.phone}</p>}
+          <div className="min-w-0">
+            {config.phone && (
+              <p>
+                <a
+                  href={buildTelUrl(config.phone)}
+                  className="break-words rounded hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                >
+                  Tel: {config.phone}
+                </a>
+              </p>
+            )}
             {config.email && (
               <p className="mt-1">
-                <a href={`mailto:${config.email}`} className="hover:underline">
+                <a
+                  href={`mailto:${config.email}`}
+                  className="break-words rounded hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                >
                   {config.email}
                 </a>
               </p>
@@ -97,7 +119,7 @@ export function PublicLayout() {
                   href={buildWhatsAppUrl(config.whatsappNumber)}
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:underline"
+                  className="break-words rounded hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
                 >
                   WhatsApp: {config.whatsappNumber}
                 </a>
@@ -111,7 +133,7 @@ export function PublicLayout() {
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    className="hover:underline"
+                    className="rounded hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
                   >
                     {platform}
                   </a>

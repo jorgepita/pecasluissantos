@@ -19,21 +19,25 @@ export function HomePage() {
   return (
     <>
       <section className="border-b border-slate-200 bg-white">
-        <Container className="py-16 text-center">
-          <h1 className="text-3xl">Peças automóveis com confiança</h1>
+        <Container className="py-10 text-center sm:py-14 lg:py-16">
+          <h1 className="text-2xl sm:text-3xl">Peças automóveis com confiança</h1>
           <p className="mx-auto mt-3 max-w-xl text-slate-600">
             Consulte o nosso catálogo de peças novas, usadas e recondicionadas.
           </p>
           <Link
             to="/produtos"
-            className={cn(buttonBaseClasses, buttonVariantClasses.primary, 'mt-6 inline-flex')}
+            className={cn(
+              buttonBaseClasses,
+              buttonVariantClasses.primary,
+              'mt-6 inline-flex w-full justify-center sm:w-auto',
+            )}
           >
             Ver catálogo
           </Link>
         </Container>
       </section>
 
-      <Container className="py-12">
+      <Container className="py-10 sm:py-12">
         <h2 className="text-xl">Categorias</h2>
 
         {loading && <p className="mt-4 text-sm text-slate-500">A carregar categorias...</p>}

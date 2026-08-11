@@ -39,38 +39,41 @@ export function ProductDetailPage() {
   }
 
   return (
-    <Container className="py-10">
+    <Container className="py-6 sm:py-10">
       <nav className="text-sm text-slate-500">
-        <Link to="/produtos" className="hover:underline">
+        <Link to="/produtos" className="rounded hover:underline">
           Catálogo
         </Link>
         {product.category && (
           <>
             {' / '}
-            <Link to={`/produtos?categoria=${product.category.slug}`} className="hover:underline">
+            <Link
+              to={`/produtos?categoria=${product.category.slug}`}
+              className="rounded hover:underline"
+            >
               {product.category.name}
             </Link>
           </>
         )}
       </nav>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-2">
+      <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:gap-8">
         <ProductGallery images={product.images} productName={product.name} />
 
         <div>
-          <h1 className="text-2xl">{product.name}</h1>
-          {product.brand && <p className="mt-1 text-sm text-slate-500">{product.brand.name}</p>}
+          <h1 className="text-xl sm:text-2xl">{product.name}</h1>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="mt-2 text-2xl font-semibold text-slate-900">
+            {formatPrice(product.price, product.currency)}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
             <ConditionBadge condition={product.condition} />
             {product.stockQuantity === 0 && (
               <Badge tone="warning">Disponibilidade sob consulta</Badge>
             )}
+            <span>Ref. {product.primaryReference}</span>
           </div>
-
-          <p className="mt-4 text-2xl font-semibold text-slate-900">
-            {formatPrice(product.price, product.currency)}
-          </p>
 
           <ProductContactActions
             product={{
@@ -82,23 +85,23 @@ export function ProductDetailPage() {
           />
 
           {product.shortDescription && (
-            <p className="mt-3 text-slate-600">{product.shortDescription}</p>
+            <p className="mt-6 text-slate-600">{product.shortDescription}</p>
           )}
           {product.description && (
             <p className="mt-4 whitespace-pre-line text-sm text-slate-600">{product.description}</p>
           )}
 
-          <dl className="mt-6 text-sm">
-            <div className="flex gap-2">
-              <dt className="text-slate-500">Referência</dt>
-              <dd className="text-slate-900">{product.primaryReference}</dd>
+          {product.compatibilityNotes && (
+            <div className="mt-6">
+              <h2 className="text-sm font-medium text-slate-700">Compatibilidade</h2>
+              <p className="mt-1 text-sm text-slate-500">{product.compatibilityNotes}</p>
             </div>
-          </dl>
+          )}
 
           {product.referenceAliases.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-6">
               <h2 className="text-sm font-medium text-slate-700">Referências equivalentes</h2>
-              <ul className="mt-1 flex flex-wrap gap-2">
+              <ul className="mt-2 flex flex-wrap gap-2">
                 {product.referenceAliases.map((alias) => (
                   <li key={alias.id}>
                     <Badge tone="neutral">
@@ -110,8 +113,21 @@ export function ProductDetailPage() {
             </div>
           )}
 
-          {product.compatibilityNotes && (
-            <p className="mt-4 text-sm text-slate-500">{product.compatibilityNotes}</p>
+          {(product.category || product.brand) && (
+            <dl className="mt-6 space-y-1 border-t border-slate-200 pt-4 text-sm text-slate-500">
+              {product.category && (
+                <div className="flex gap-2">
+                  <dt>Categoria</dt>
+                  <dd className="text-slate-700">{product.category.name}</dd>
+                </div>
+              )}
+              {product.brand && (
+                <div className="flex gap-2">
+                  <dt>Marca</dt>
+                  <dd className="text-slate-700">{product.brand.name}</dd>
+                </div>
+              )}
+            </dl>
           )}
         </div>
       </div>

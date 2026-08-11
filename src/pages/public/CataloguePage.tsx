@@ -62,8 +62,8 @@ export function CataloguePage() {
   }
 
   return (
-    <Container className="py-10">
-      <h1 className="text-2xl">Catálogo</h1>
+    <Container className="py-6 sm:py-10">
+      <h1 className="text-xl sm:text-2xl">Catálogo</h1>
 
       <ProductFilters
         categories={categories}
