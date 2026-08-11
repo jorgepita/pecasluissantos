@@ -124,16 +124,44 @@ but as their own phase, not grown out of this one.
 - **Not done**: mobile-first polish pass on catalogue + product pages
   beyond what Phase 1B already shipped responsively — still open.
 
-## Phase 4 — Deployment automation
+## Phase 4 — Deployment automation (workflow complete; two manual steps pending)
 
-- Decide final hosting target (GitHub Pages project page vs. custom
-  domain) and set `vite.config.ts`'s `base` accordingly.
-- GitHub Actions workflow: build on push to `main`, deploy `dist/`.
-- SPA fallback routing for GitHub Pages (404.html redirect or
-  equivalent).
-- Secrets handling for CI (Supabase URL/anon key as repo/environment
-  secrets — still public-safe values, but kept out of the committed
-  history regardless).
+- **Done**: hosting target decided — GitHub Pages project page
+  (`https://jorgepita.github.io/pecasluissantos/`), not a custom domain.
+  `vite.config.ts`'s `base` now reads `VITE_BASE_PATH` (set only by the
+  workflow), defaulting to `/` everywhere else — see
+  [ARCHITECTURE.md](ARCHITECTURE.md) ("Deployment strategy").
+- **Done**: `.github/workflows/deploy.yml` — lint, format check, build,
+  then deploy `dist/` via `actions/upload-pages-artifact` +
+  `actions/deploy-pages` on every push to `main`.
+- **Done**: SPA fallback — `dist/index.html` copied to `dist/404.html` in
+  the workflow (see ARCHITECTURE.md for why a copy, not a redirect,
+  suffices here) — plus `public/.nojekyll`.
+- **Done**: `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` read from GitHub
+  Actions repository secrets in the build step — no secret committed.
+- **Done**: fixed a latent bug the base-path change surfaced —
+  `ProductContactActions`'s WhatsApp share link now uses
+  `import.meta.env.BASE_URL` instead of assuming the app is served from
+  the domain root.
+- **Pending — requires manual action in the GitHub UI (cannot be done
+  from a workflow file or by this session)**:
+  1. Repository Settings → Pages → Source → "GitHub Actions".
+  2. Repository Settings → Secrets and variables → Actions → add
+     `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same values as
+     local `.env.local`).
+
+  Until both are done, the workflow will run on push but the Pages
+  deployment step (or the app's Supabase connectivity) won't succeed —
+  see README.md ("Deployment") for the exact steps.
+
+- **Pending — requires manual action in the Supabase dashboard**: add the
+  production URL under Authentication → URL Configuration once the exact
+  `github.io` URL is confirmed live (not required for the current
+  email/password-only sign-in flow to function, but keeps the project
+  correctly configured for any future redirect-based auth flow — see
+  ARCHITECTURE.md).
+- **Not done**: custom domain (deliberately deferred — see
+  ARCHITECTURE.md).
 
 ## Later / not yet scheduled
 

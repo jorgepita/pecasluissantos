@@ -372,26 +372,72 @@ current design tokens in `src/styles/global.css` are static. Wiring them
 up is intentionally deferred to avoid premature runtime-theming
 complexity.
 
-## Deployment strategy
+## Deployment strategy (Phase 4)
 
-- **Target**: GitHub Pages, chosen for free static hosting compatible with
-  a client-only Supabase-backed SPA.
+- **Target**: GitHub Pages, as a _project_ page —
+  `https://jorgepita.github.io/pecasluissantos/` — chosen for free static
+  hosting compatible with a client-only Supabase-backed SPA. No backend
+  server, no paid hosting.
 - **Build**: `npm run build` produces a static `dist/` (via `tsc -b && vite
-build`).
-- `vite.config.ts` currently sets no explicit `base` (defaults to `/`),
-  which is correct for local dev, a custom domain, or a GitHub Pages
-  _user/org_ site (`<user>.github.io`). If deployed as a GitHub Pages
-  _project_ page (`<user>.github.io/<repo>/`) without a custom domain,
-  `base` must be set to `/<repo-name>/` — not done yet since no live
-  deployment target has been decided.
-- **Not yet implemented**: any CI/CD workflow (e.g. GitHub Actions) to
-  build and publish `dist/` automatically. This is explicitly out of
-  scope for the foundation phase — see ROADMAP.md.
-- Client-side routing (`react-router-dom`) requires the host to serve
-  `index.html` for unknown paths (a "SPA fallback"). GitHub Pages needs a
-  workaround for this (commonly a `404.html` that redirects to
-  `index.html`) — not yet set up, noted here so it isn't forgotten when
-  deployment is actually wired up.
+build`). Deployment is automated: `.github/workflows/deploy.yml` runs on
+  every push to `main` — lint, format check, build, then publish `dist/`
+  via the official `actions/upload-pages-artifact` /
+  `actions/deploy-pages` actions. No custom deploy server, no committed
+  `dist/`.
+- **`base` path**: `vite.config.ts` reads `base` from the `VITE_BASE_PATH`
+  env var, defaulting to `/` when unset. That default is what local dev
+  (`npm run dev`), `npm run build` run locally, and a future custom-domain
+  deployment all get — unchanged from before this phase. The GitHub
+  Actions workflow is the **only** place `VITE_BASE_PATH=/pecasluissantos/`
+  is set, since this is a project page, not a user/org page. Nothing else
+  in the repo hardcodes that path.
+- **React Router**: `src/app/App.tsx` passes
+  `import.meta.env.BASE_URL` (Vite's own reflection of the resolved
+  `base`, trailing slash trimmed) as `BrowserRouter`'s `basename`. This is
+  the one place the path prefix reaches routing — every `<Link to="...">`
+  and `navigate()` call in the app stays root-relative and unaware of it.
+- **SPA fallback**: GitHub Pages has no server-side rewrite, so a direct
+  navigation or refresh on a client-side route (e.g. `/produtos/algum-slug`)
+  is a real request that would otherwise 404. The workflow copies the
+  built `dist/index.html` to `dist/404.html` after the build step — GitHub
+  Pages serves that for any unknown path, the browser runs it exactly like
+  `index.html`, and react-router reads the (unchanged) address bar and
+  renders the right route client-side. No redirect-with-sessionStorage
+  trick needed; this is the smallest fix that works for a `BrowserRouter`
+  app.
+- **`.nojekyll`**: `public/.nojekyll` (empty file, copied into `dist/` by
+  Vite like any other `public/` asset) tells GitHub Pages not to run the
+  build output through Jekyll.
+- **Environment variables in CI**: `VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_ANON_KEY` are read from GitHub Actions repository secrets
+  in the `build` job's `env:` block, the same two variables documented in
+  `.env.example` and read by `src/lib/env.ts` — no new environment-variable
+  architecture, no secret is ever hardcoded in the workflow or repo.
+- **One-time manual GitHub configuration** (not doable from a workflow
+  file): repository Settings → Pages → Source must be set to
+  "GitHub Actions", and the two secrets above must be added under
+  Settings → Secrets and variables → Actions. See README.md
+  ("Deployment").
+- **A previously-latent bug this phase surfaced**: `ProductContactActions`
+  built the WhatsApp share link as `` `${window.location.origin}/produtos/${slug}` ``
+  — correct only when the app is served from the domain root. Under the
+  GitHub Pages project-page path this would have 404'd. Fixed to use
+  `` `${window.location.origin}${import.meta.env.BASE_URL}produtos/${slug}` ``,
+  the same `BASE_URL` used for routing.
+- **Supabase Auth**: the app only uses `signInWithPassword` (see
+  "Authentication approach" below) — no OAuth, no magic link, no
+  email-confirmation redirect, so Supabase's Site URL/Redirect URLs
+  allowlist isn't in this flow's critical path today. Still, add the
+  production URL (`https://jorgepita.github.io/pecasluissantos/`) under
+  Supabase Dashboard → Authentication → URL Configuration → Site URL (and
+  Redirect URLs) so it's already correct if a redirect-based flow (e.g.
+  password reset) is added later — see README.md for the exact value.
+- **Storage**: the existing public `product-images` bucket needs no
+  change — its public-URL reads and admin-only write policies are keyed
+  on `is_admin()`/bucket config, not on the frontend's origin.
+- **Custom domain**: deliberately not configured this phase — the free
+  `github.io` URL is sufficient for now; revisit as its own small change
+  later.
 
 ## Key architectural decisions (log)
 
@@ -475,3 +521,15 @@ restrict` vs. intentional cascade) — the admin UI mirrors that rather
   of `<Outlet context>` in this codebase — still not a global state
   library, just router-native parent-to-child data passing for data the
   parent layout already had.
+- **GitHub Pages `base` comes from a `VITE_BASE_PATH` env var, set only in
+  the deploy workflow**, not hardcoded in `vite.config.ts` — keeps a plain
+  local `npm run build` producing the same root-relative output it always
+  has, and keeps the repo-specific path (`/pecasluissantos/`) in exactly
+  one place (the workflow file). `import.meta.env.BASE_URL` (Vite's own
+  reflection of that value) is what `BrowserRouter`'s `basename` reads, so
+  routing needs no separate configuration.
+- **`dist/404.html` = a copy of `dist/index.html`**, not a redirect page,
+  as the GitHub Pages SPA fallback. Simpler than the common
+  sessionStorage-redirect trick and sufficient for a `BrowserRouter` app:
+  GitHub serves it verbatim for any unmatched path, so the address bar
+  (and thus what react-router reads) never changes.

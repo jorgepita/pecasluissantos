@@ -6,11 +6,13 @@ Deviations from a "textbook" structure are called out with the reasoning.
 ```
 .
 ├── index.html                  Vite entry HTML (pt-PT lang, app title/meta)
-├── vite.config.ts               Vite config: React plugin, Tailwind plugin, "@" path alias
+├── vite.config.ts               Vite config: React plugin, Tailwind plugin, "@" path alias,
+│                                  base path from VITE_BASE_PATH (GitHub Pages, see ARCHITECTURE.md)
 ├── tsconfig*.json                TypeScript project config (app + node + root)
 ├── .env.example                  Documents required env vars (no real secrets)
 ├── .prettierrc.json / .prettierignore
 ├── .oxlintrc.json                 Linter config
+├── .github/workflows/deploy.yml    Build + deploy to GitHub Pages on push to main (Phase 4)
 │
 ├── src/
 │   ├── main.tsx                    App entry point: mounts <App /> and imports global.css
@@ -105,7 +107,8 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │       └── 0009_create_product_images_storage_bucket.sql  product-images bucket + policies
 │
 ├── public/
-│   └── favicon.svg
+│   ├── favicon.svg
+│   └── .nojekyll                    Tells GitHub Pages not to run the build output through Jekyll
 │
 └── docs/
     ├── ARCHITECTURE.md, DATABASE.md, PROJECT_MAP.md (this file), ROADMAP.md
@@ -137,6 +140,15 @@ table/service, because it's a pure link-builder with no Supabase write.
 `PublicLayout` now passes its already-fetched `store_settings` down via
 `<Outlet context>` rather than `ProductDetailPage` fetching it again — the
 first use of Outlet context in this codebase.
+
+## Phase 4 note
+
+GitHub Pages deployment (`.github/workflows/deploy.yml`, `vite.config.ts`'s
+`VITE_BASE_PATH`-driven `base`, `src/app/App.tsx`'s `basename`,
+`public/.nojekyll`) was added in Phase 4. No new top-level directory —
+`.github/workflows/` is the one addition, standard location for GitHub
+Actions. See [ARCHITECTURE.md](ARCHITECTURE.md) ("Deployment strategy")
+for the full mechanics.
 
 ## Deviations from the originally sketched structure, and why
 

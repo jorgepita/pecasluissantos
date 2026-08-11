@@ -1,0 +1,90 @@
+name: Deploy to GitHub Pages
+
+# Builds the Vite/React SPA and publishes dist/ to GitHub Pages on every
+# push to main. See docs/ARCHITECTURE.md ("Deployment strategy") for the
+# full picture — this workflow is the only place that sets VITE_BASE_PATH,
+# so the repo-scoped GitHub Pages path prefix (/pecasluissantos/) never
+# needs to be hardcoded anywhere else.
+#
+# Required one-time repository configuration (cannot be done from a
+# workflow file — see README.md "Deployment"):
+#   - Settings → Pages → Build and deployment → Source: "GitHub Actions".
+#   - Settings → Secrets and variables → Actions → New repository secret:
+#     VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (same values as local
+#     .env.local — Project Settings → API in the Supabase dashboard).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; a newer push supersedes an
+# in-flight one rather than queuing behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Project page (jorgepita.github.io/pecasluissantos/), not a
+          # user/org page — the app needs its own path prefix baked in.
+          VITE_BASE_PATH: /pecasluissantos/
+
+      # GitHub Pages has no server-side SPA fallback: a direct navigation
+      # or refresh on a client-side route (e.g. /produtos/algum-slug) is a
+      # real GET request that 404s unless something is served for it.
+      # Duplicating the built index.html as 404.html is the standard,
+      # smallest fix for a react-router BrowserRouter app: GitHub serves it
+      # for any unknown path, the browser executes it like any other page
+      # load, and react-router then reads the (unchanged) address bar URL
+      # and renders the matching route client-side.
+      - name: Add SPA fallback (404.html)
+        run: cp dist/index.html dist/404.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
