@@ -6,6 +6,16 @@ interface CatalogueImageProps {
   storagePath: string | null;
   alt: string;
   className?: string;
+  /**
+   * `object-fit` for the rendered `<img>`. Defaults to `'cover'` (crop to
+   * fill the box) — correct for fixed-size thumbnails (grid cards, gallery
+   * thumbnail strip), where a uniform box matters more than seeing every
+   * edge of the photo. Pass `'contain'` where the complete photograph must
+   * stay visible with nothing cropped, e.g. the product-detail main image
+   * (see `ProductGallery.tsx`) — a photo whose aspect ratio doesn't match
+   * the box then letterboxes instead of losing content.
+   */
+  fit?: 'cover' | 'contain';
 }
 
 /**
@@ -15,7 +25,12 @@ interface CatalogueImageProps {
  * load (e.g. a stale/deleted Storage object — see docs/DATABASE.md
  * "Known gap" on orphaned objects, which cuts both ways).
  */
-export function CatalogueImage({ storagePath, alt, className }: CatalogueImageProps) {
+export function CatalogueImage({
+  storagePath,
+  alt,
+  className,
+  fit = 'cover',
+}: CatalogueImageProps) {
   const [failed, setFailed] = useState(false);
   const showFallback = !storagePath || failed;
 
@@ -48,7 +63,11 @@ export function CatalogueImage({ storagePath, alt, className }: CatalogueImagePr
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      className={cn('object-cover', className)}
+      className={cn(
+        'bg-slate-100',
+        fit === 'contain' ? 'object-contain' : 'object-cover',
+        className,
+      )}
     />
   );
 }

@@ -20,6 +20,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         storagePath={selected?.storage_path ?? null}
         alt={selected?.alt_text ?? productName}
         className="aspect-square w-full rounded-lg"
+        fit="contain"
       />
 
       {images.length > 1 && (
