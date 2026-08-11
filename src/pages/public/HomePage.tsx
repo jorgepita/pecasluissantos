@@ -1,10 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { buttonBaseClasses, buttonVariantClasses } from '@/components/ui/buttonStyles';
 import { cn } from '@/utils/cn';
 import { useCategories } from '@/features/catalogue/useCategories';
 import { buildCategoryTree } from '@/features/catalogue/buildCategoryTree';
 import { CategoryList } from '@/features/catalogue/components/CategoryList';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
+import type { PublicLayoutContext } from '@/layouts/PublicLayout';
+
+const HERO_TAGLINE = 'Consulte o nosso catálogo de peças novas, usadas e recondicionadas.';
 
 /**
  * Public catalogue landing page. Real Supabase data (active categories) —
@@ -15,15 +19,20 @@ import { CategoryList } from '@/features/catalogue/components/CategoryList';
 export function HomePage() {
   const { categories, loading, error } = useCategories();
   const topLevelCategories = buildCategoryTree(categories);
+  const { storeConfig } = useOutletContext<PublicLayoutContext>();
+
+  useDocumentHead({
+    title: storeConfig.storeName,
+    description: HERO_TAGLINE,
+    url: `${window.location.origin}${import.meta.env.BASE_URL}`,
+  });
 
   return (
     <>
       <section className="border-b border-slate-200 bg-white">
         <Container className="py-10 text-center sm:py-14 lg:py-16">
           <h1 className="text-2xl sm:text-3xl">Peças automóveis com confiança</h1>
-          <p className="mx-auto mt-3 max-w-xl text-slate-600">
-            Consulte o nosso catálogo de peças novas, usadas e recondicionadas.
-          </p>
+          <p className="mx-auto mt-3 max-w-xl text-slate-600">{HERO_TAGLINE}</p>
           <Link
             to="/produtos"
             className={cn(

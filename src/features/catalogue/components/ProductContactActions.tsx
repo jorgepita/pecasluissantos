@@ -1,6 +1,7 @@
 import { cn } from '@/utils/cn';
 import { buildTelUrl, buildWhatsAppUrl } from '@/utils/whatsapp';
 import { buttonBaseClasses, buttonVariantClasses } from '@/components/ui/buttonStyles';
+import { buildProductUrl } from '@/features/catalogue/format';
 import type { StoreConfig } from '@/types/store-config';
 
 interface ContactProduct {
@@ -18,13 +19,12 @@ interface ProductContactActionsProps {
  * a link back to the exact listing — no internal id, no admin-only data,
  * nothing beyond what the customer is already looking at.
  *
- * `import.meta.env.BASE_URL` (not a bare `/produtos/...`) matters here:
- * under the GitHub Pages deployment the app is served from
- * `/pecasluissantos/`, so a link built from `origin` alone would 404 —
- * see vite.config.ts / src/app/App.tsx for where that base path comes
- * from. */
+ * `buildProductUrl` (not a bare `/produtos/...`) matters here: under the
+ * GitHub Pages deployment the app is served from `/pecasluissantos/`, so a
+ * link built from `origin` alone would 404 — see vite.config.ts /
+ * src/app/App.tsx for where that base path comes from. */
 function buildContactMessage(product: ContactProduct): string {
-  const url = `${window.location.origin}${import.meta.env.BASE_URL}produtos/${product.slug}`;
+  const url = buildProductUrl(product.slug);
   return `Olá, tenho interesse neste artigo:\n${product.name}\nReferência: ${product.primaryReference}\n${url}`;
 }
 

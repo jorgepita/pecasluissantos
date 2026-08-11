@@ -135,6 +135,28 @@ export interface ProductInput {
   compatibility_notes: string | null;
 }
 
+/** Fields carried over by the "Duplicar" action on `ProductsPage` into a
+ * fresh `/admin/produtos/novo` form (via router `state`). Deliberately
+ * excludes `slug` and `primary_reference` (both unique-constrained —
+ * copying them verbatim would just collide, see docs/DATABASE.md) and
+ * `status`/`stock_quantity` (a duplicate must start as an unpublished,
+ * zero-stock draft, never inherit the source product's live
+ * availability) — `ProductForm`'s normal create-mode defaults cover all
+ * four. Images and reference aliases are never copied either; those stay
+ * per-product by design (see docs/ARCHITECTURE.md "Admin CRUD"). */
+export type ProductDuplicateSeed = Pick<
+  ProductInput,
+  | 'name'
+  | 'short_description'
+  | 'description'
+  | 'category_id'
+  | 'brand_id'
+  | 'condition'
+  | 'price'
+  | 'currency'
+  | 'compatibility_notes'
+>;
+
 export async function createProduct(input: ProductInput): Promise<ProductRow> {
   const { data, error } = await supabase.from('products').insert(input).select('*').single();
   if (error) throw error;
@@ -150,6 +172,16 @@ export async function updateProduct(id: number, input: ProductInput): Promise<Pr
     .single();
   if (error) throw error;
   return data as ProductRow;
+}
+
+/** Single-field status update for the `ProductsPage` list's quick publish/
+ * unpublish action — a partial `.update()`, not the full `ProductInput`
+ * `updateProduct` above requires, so the list doesn't need to fetch (and
+ * resubmit) every other field just to flip visibility. Same table, same
+ * RLS (`is_admin()`-gated), no new model. */
+export async function updateProductStatus(id: number, status: ProductStatus): Promise<void> {
+  const { error } = await supabase.from('products').update({ status }).eq('id', id);
+  if (error) throw error;
 }
 
 /** Real delete (unlike categories/brands) — cascades `product_images` and

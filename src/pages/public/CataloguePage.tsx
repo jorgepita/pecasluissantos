@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { useCategories } from '@/features/catalogue/useCategories';
 import { useBrands } from '@/features/catalogue/useBrands';
 import { useProductList } from '@/features/catalogue/useProductList';
 import { ProductFilters } from '@/features/catalogue/components/ProductFilters';
 import { ProductGrid } from '@/features/catalogue/components/ProductGrid';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
+import type { PublicLayoutContext } from '@/layouts/PublicLayout';
 import type { ProductCondition } from '@/types/database';
 
 const CONDITION_VALUES: ProductCondition[] = ['new', 'used', 'refurbished'];
@@ -27,11 +29,26 @@ export function CataloguePage() {
 
   const { categories, loading: categoriesLoading } = useCategories();
   const { brands, loading: brandsLoading } = useBrands();
+  const { storeConfig } = useOutletContext<PublicLayoutContext>();
 
   const categoryId = useMemo(
     () => (categorySlug ? categories.find((c) => c.slug === categorySlug)?.id : undefined),
     [categorySlug, categories],
   );
+
+  const activeCategoryName = categorySlug
+    ? categories.find((c) => c.slug === categorySlug)?.name
+    : undefined;
+
+  useDocumentHead({
+    title: activeCategoryName
+      ? `${activeCategoryName} | Catálogo | ${storeConfig.storeName}`
+      : `Catálogo | ${storeConfig.storeName}`,
+    description: activeCategoryName
+      ? `Peças na categoria ${activeCategoryName} em ${storeConfig.storeName}.`
+      : `Consulte o catálogo completo de peças automóveis de ${storeConfig.storeName}.`,
+    url: `${window.location.origin}${import.meta.env.BASE_URL}produtos`,
+  });
   const brandId = useMemo(
     () => (brandSlug ? brands.find((b) => b.slug === brandSlug)?.id : undefined),
     [brandSlug, brands],

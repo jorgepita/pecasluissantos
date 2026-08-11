@@ -12,7 +12,7 @@ import type {
 import { FormField } from '../shared/FormField';
 import { slugify, isValidSlug } from '../shared/slugify';
 import { pgErrorMessage } from '../shared/pgErrorMessage';
-import { createProduct, updateProduct, type ProductInput } from './api';
+import { createProduct, updateProduct, type ProductDuplicateSeed, type ProductInput } from './api';
 
 const controlClasses =
   'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/20';
@@ -42,29 +42,61 @@ function isValidCurrency(value: string): boolean {
 interface ProductFormProps {
   /** undefined = create mode */
   product?: ProductRow;
+  /** Prefill for a *new* product, from the "Duplicar" action on
+   * `ProductsPage` (see `ProductFormPage`, which reads it from router
+   * `state`). Ignored when `product` is set — an existing row's own data
+   * always wins. Deliberately excludes slug/primary_reference/status/
+   * stock — see `ProductDuplicateSeed`'s own doc comment for why. */
+  initialValues?: ProductDuplicateSeed;
   categories: CategoryRow[];
   brands: BrandRow[];
   onSaved: (product: ProductRow) => void;
   onCancel: () => void;
 }
 
-export function ProductForm({ product, categories, brands, onSaved, onCancel }: ProductFormProps) {
+export function ProductForm({
+  product,
+  initialValues,
+  categories,
+  brands,
+  onSaved,
+  onCancel,
+}: ProductFormProps) {
   const isEditing = product !== undefined;
 
-  const [name, setName] = useState(product?.name ?? '');
+  const [name, setName] = useState(product?.name ?? initialValues?.name ?? '');
+  // Never seeded from initialValues, even when duplicating — a copied slug
+  // would just collide with the source product's (slugs are unique), so
+  // the admin always enters a fresh one. Same reasoning for
+  // primaryReference below (unique per brand).
   const [slug, setSlug] = useState(product?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(isEditing);
-  const [shortDescription, setShortDescription] = useState(product?.short_description ?? '');
-  const [description, setDescription] = useState(product?.description ?? '');
-  const [categoryId, setCategoryId] = useState(product?.category_id?.toString() ?? '');
-  const [brandId, setBrandId] = useState(product?.brand_id?.toString() ?? '');
+  const [shortDescription, setShortDescription] = useState(
+    product?.short_description ?? initialValues?.short_description ?? '',
+  );
+  const [description, setDescription] = useState(
+    product?.description ?? initialValues?.description ?? '',
+  );
+  const [categoryId, setCategoryId] = useState(
+    product?.category_id?.toString() ?? initialValues?.category_id?.toString() ?? '',
+  );
+  const [brandId, setBrandId] = useState(
+    product?.brand_id?.toString() ?? initialValues?.brand_id?.toString() ?? '',
+  );
   const [primaryReference, setPrimaryReference] = useState(product?.primary_reference ?? '');
-  const [condition, setCondition] = useState<ProductCondition>(product?.condition ?? 'new');
-  const [price, setPrice] = useState(product?.price ?? '');
-  const [currency, setCurrency] = useState(product?.currency ?? 'EUR');
+  const [condition, setCondition] = useState<ProductCondition>(
+    product?.condition ?? initialValues?.condition ?? 'new',
+  );
+  const [price, setPrice] = useState(product?.price ?? initialValues?.price ?? '');
+  const [currency, setCurrency] = useState(product?.currency ?? initialValues?.currency ?? 'EUR');
+  // Never seeded — a duplicate always starts as an unpublished, zero-stock
+  // draft (see ProductDuplicateSeed), regardless of the source product's
+  // current availability.
   const [stockQuantity, setStockQuantity] = useState(product?.stock_quantity ?? 0);
   const [status, setStatus] = useState<ProductStatus>(product?.status ?? 'draft');
-  const [compatibilityNotes, setCompatibilityNotes] = useState(product?.compatibility_notes ?? '');
+  const [compatibilityNotes, setCompatibilityNotes] = useState(
+    product?.compatibility_notes ?? initialValues?.compatibility_notes ?? '',
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -228,7 +260,7 @@ export function ProductForm({ product, categories, brands, onSaved, onCancel }: 
       </FormField>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <FormField label="Estado do artigo" htmlFor="product-condition">
+        <FormField label="Condição" htmlFor="product-condition">
           <select
             id="product-condition"
             value={condition}

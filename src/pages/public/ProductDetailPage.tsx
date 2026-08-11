@@ -5,7 +5,14 @@ import { useProductDetail } from '@/features/catalogue/useProductDetail';
 import { ProductGallery } from '@/features/catalogue/components/ProductGallery';
 import { ConditionBadge } from '@/features/catalogue/components/ConditionBadge';
 import { ProductContactActions } from '@/features/catalogue/components/ProductContactActions';
-import { formatPrice, referenceTypeLabel } from '@/features/catalogue/format';
+import {
+  buildProductMetaDescription,
+  buildProductUrl,
+  formatPrice,
+  referenceTypeLabel,
+} from '@/features/catalogue/format';
+import { getPublicImageUrl } from '@/features/catalogue/api';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import type { PublicLayoutContext } from '@/layouts/PublicLayout';
 
@@ -14,6 +21,34 @@ export function ProductDetailPage() {
   const { product, error } = useProductDetail(slug);
   // Already fetched once by PublicLayout — reused here, not re-fetched.
   const { storeConfig } = useOutletContext<PublicLayoutContext>();
+
+  // Primary image (or the first one) for `og:image` — same tie-break as
+  // ProductGallery/ProductCard (`is_primary`, then `sort_order`), already
+  // applied server-side by `getProductImages` (see features/catalogue/api.ts).
+  const ogImagePath = product?.images[0]?.storage_path;
+
+  // `product === null` renders <NotFoundPage /> below, which calls this
+  // same hook itself — and React fires a child's effects before its
+  // parent's, so this component's own call would run *after* and
+  // overwrite NotFoundPage's title/description if the two disagreed here.
+  // Matching NotFoundPage's exact strings in that branch keeps the final,
+  // settled result correct either way (idempotent, not a race).
+  useDocumentHead({
+    title:
+      product === null
+        ? `Página não encontrada | ${storeConfig.storeName}`
+        : product
+          ? `${product.name} | ${storeConfig.storeName}`
+          : storeConfig.storeName,
+    description:
+      product === null
+        ? 'A página que procura não existe.'
+        : product
+          ? buildProductMetaDescription(product)
+          : 'A carregar produto...',
+    url: buildProductUrl(slug),
+    image: ogImagePath ? getPublicImageUrl(ogImagePath) : undefined,
+  });
 
   if (product === undefined) {
     return (

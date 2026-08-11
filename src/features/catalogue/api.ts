@@ -74,8 +74,14 @@ export async function listBrands(): Promise<BrandRow[]> {
   return data ?? [];
 }
 
-async function searchProductIdsByAliasReference(normalized: string): Promise<number[]> {
-  if (!normalized) return [];
+/** Maps each matching product id to the alias reference it matched (as
+ * originally typed by the admin, not normalized) — not just the id list —
+ * so the caller can tell the customer *which* alternative reference
+ * matched (see `ProductListItem.matchedAlternativeReference`). If a
+ * product has more than one matching alias, the first one wins; this is
+ * informational display text, not a search-ranking signal. */
+async function searchProductIdsByAliasReference(normalized: string): Promise<Map<number, string>> {
+  if (!normalized) return new Map();
   const { data, error } = await supabase
     .from('product_reference_aliases')
     .select('*')
@@ -86,14 +92,24 @@ async function searchProductIdsByAliasReference(normalized: string): Promise<num
   // our hand-written (Relationships-less) Database type — cast to the
   // known shape rather than widen the whole client's typing to fix it.
   const rows = (data ?? []) as ProductReferenceAliasRow[];
-  return [...new Set(rows.map((row) => row.product_id))];
+  const matchByProduct = new Map<number, string>();
+  for (const row of rows) {
+    if (!matchByProduct.has(row.product_id)) {
+      matchByProduct.set(row.product_id, row.reference);
+    }
+  }
+  return matchByProduct;
 }
 
 /** Batch-fetches category names, brand names, and primary image paths for
  * a page of products and assembles `ProductListItem[]` — one round trip
  * per lookup (not one per product), so this stays O(1) queries per page
- * regardless of how many products are on it. */
-async function attachListMetadata(rows: ProductRow[]): Promise<ProductListItem[]> {
+ * regardless of how many products are on it. `aliasMatchByProduct` is
+ * empty outside of an alias-driven search — see `listProducts`. */
+async function attachListMetadata(
+  rows: ProductRow[],
+  aliasMatchByProduct: Map<number, string> = new Map(),
+): Promise<ProductListItem[]> {
   if (rows.length === 0) return [];
 
   const productIds = rows.map((row) => row.id);
@@ -151,6 +167,7 @@ async function attachListMetadata(rows: ProductRow[]): Promise<ProductListItem[]
     currency: row.currency,
     stockQuantity: row.stock_quantity,
     primaryImagePath: primaryImageByProduct.get(row.id) ?? null,
+    matchedAlternativeReference: aliasMatchByProduct.get(row.id) ?? null,
   }));
 }
 
@@ -172,15 +189,16 @@ export async function listProducts(
   if (filters.condition) query = query.eq('condition', filters.condition);
 
   const search = filters.search?.trim();
+  let aliasMatchByProduct = new Map<number, string>();
   if (search) {
     const normalized = normalizeReference(search);
     const orConditions = [`name.ilike.${escapeOrFilterValue(`%${search}%`)}`];
 
     if (normalized) {
       orConditions.push(`primary_reference_normalized.ilike.%${normalized}%`);
-      const aliasProductIds = await searchProductIdsByAliasReference(normalized);
-      if (aliasProductIds.length > 0) {
-        orConditions.push(`id.in.(${aliasProductIds.join(',')})`);
+      aliasMatchByProduct = await searchProductIdsByAliasReference(normalized);
+      if (aliasMatchByProduct.size > 0) {
+        orConditions.push(`id.in.(${[...aliasMatchByProduct.keys()].join(',')})`);
       }
     }
 
@@ -193,7 +211,7 @@ export async function listProducts(
   if (error) throw error;
 
   const rows = data ?? [];
-  const items = await attachListMetadata(rows);
+  const items = await attachListMetadata(rows, aliasMatchByProduct);
   return { items, hasMore: rows.length === PAGE_SIZE };
 }
 

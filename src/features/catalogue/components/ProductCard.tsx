@@ -23,6 +23,11 @@ export function ProductCard({ item }: { item: ProductListItem }) {
           {item.brandName && <p className="text-xs text-slate-500">{item.brandName}</p>}
           <h3 className="mt-0.5 line-clamp-2 text-sm font-medium text-slate-900">{item.name}</h3>
           <p className="mt-1 text-xs text-slate-500">Ref. {item.primaryReference}</p>
+          {item.matchedAlternativeReference && (
+            <p className="mt-0.5 text-xs text-brand-700">
+              Ref. equivalente: {item.matchedAlternativeReference}
+            </p>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-1">
             <span className="text-base font-semibold text-slate-900">

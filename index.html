@@ -9,6 +9,26 @@
       content="Plataforma de gestão de peças automóveis — catálogo e administração."
     />
     <title>Peças Luís Santos</title>
+
+    <!--
+      Static Open Graph defaults — the pre-hydration fallback for link-
+      preview bots that fetch raw HTML without running JS (WhatsApp,
+      Facebook, X, ...). Every public page overrides title/description/
+      url/image once React mounts and fetches store_settings (see
+      src/hooks/useDocumentHead.ts), but that JS-driven update never
+      reaches a non-JS crawler — see docs/ARCHITECTURE.md ("SEO /
+      metadata") for why. The hardcoded "Peças Luís Santos" below is the
+      same pre-existing tradeoff as the static <title> above: this file
+      can't read the live store_settings row, so it can't be fully
+      data-driven — see docs/ARCHITECTURE.md ("Configuration strategy").
+    -->
+    <meta property="og:site_name" content="Peças Luís Santos" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Peças Luís Santos" />
+    <meta
+      property="og:description"
+      content="Plataforma de gestão de peças automóveis — catálogo e administração."
+    />
   </head>
   <body>
     <div id="root"></div>

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import { useAdminCategories } from '@/features/admin/categories/useAdminCategories';
@@ -7,12 +7,22 @@ import { useAdminProduct } from '@/features/admin/products/useAdminProduct';
 import { ProductForm } from '@/features/admin/products/ProductForm';
 import { ProductImageManager } from '@/features/admin/products/ProductImageManager';
 import { ReferenceAliasManager } from '@/features/admin/products/ReferenceAliasManager';
+import type { ProductDuplicateSeed } from '@/features/admin/products/api';
+
+interface DuplicateLocationState {
+  duplicateFrom?: ProductDuplicateSeed;
+}
 
 export function ProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const productId = id ? Number(id) : undefined;
   const isEditing = productId !== undefined;
+  // Only meaningful in create mode — see ProductsPage's "Duplicar" action.
+  const duplicateFrom = !isEditing
+    ? (location.state as DuplicateLocationState | null)?.duplicateFrom
+    : undefined;
 
   const { categories, loading: categoriesLoading } = useAdminCategories();
   const { brands, loading: brandsLoading } = useAdminBrands();
@@ -43,6 +53,7 @@ export function ProductFormPage() {
           <Card className="mt-6 max-w-3xl p-6">
             <ProductForm
               product={product ?? undefined}
+              initialValues={duplicateFrom}
               categories={categories}
               brands={brands}
               onSaved={(saved) => {

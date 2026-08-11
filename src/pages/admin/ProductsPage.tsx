@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +8,13 @@ import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog';
 import { useAdminCategories } from '@/features/admin/categories/useAdminCategories';
 import { useAdminBrands } from '@/features/admin/brands/useAdminBrands';
 import { useAdminProducts } from '@/features/admin/products/useAdminProducts';
-import { deleteProduct, type AdminProductListItem } from '@/features/admin/products/api';
+import {
+  deleteProduct,
+  getAdminProductById,
+  updateProductStatus,
+  type AdminProductListItem,
+  type ProductDuplicateSeed,
+} from '@/features/admin/products/api';
 import { formatPrice } from '@/features/catalogue/format';
 import type { ProductStatus } from '@/types/database';
 
@@ -32,6 +38,7 @@ const controlClasses =
   'rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/20';
 
 export function ProductsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<ProductStatus | ''>('');
   const [categoryId, setCategoryId] = useState('');
@@ -39,6 +46,10 @@ export function ProductsPage() {
   const [productToDelete, setProductToDelete] = useState<AdminProductListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // One shared "in flight" id — the quick-publish and duplicate actions
+  // never overlap for the same row (both disable that row's buttons),
+  // and only one row is ever acted on at a time.
+  const [busyProductId, setBusyProductId] = useState<number | null>(null);
 
   const { categories } = useAdminCategories();
   const { brands } = useAdminBrands();
@@ -62,6 +73,56 @@ export function ProductsPage() {
       setActionError('Não foi possível eliminar o produto.');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  /** Quick visibility flip — "Despublicar" when live, "Publicar"
+   * otherwise. Deliberately only ever targets these two states; a
+   * draft/reserved/sold transition stays a deliberate choice made in the
+   * full edit form, not a one-click list action. */
+  async function toggleAvailability(item: AdminProductListItem) {
+    setActionError(null);
+    setBusyProductId(item.id);
+    try {
+      await updateProductStatus(item.id, item.status === 'available' ? 'unavailable' : 'available');
+      reload();
+    } catch {
+      setActionError('Não foi possível atualizar a publicação do produto.');
+    } finally {
+      setBusyProductId(null);
+    }
+  }
+
+  /** Fetches the full row (the list row alone doesn't carry description/
+   * compatibility notes) and hands it to the "new product" form via
+   * router state — see ProductFormPage/ProductForm's `initialValues`.
+   * Nothing is written here; duplication only takes effect once the admin
+   * actually saves the prefilled form. */
+  async function duplicateProduct(item: AdminProductListItem) {
+    setActionError(null);
+    setBusyProductId(item.id);
+    try {
+      const full = await getAdminProductById(item.id);
+      if (!full) {
+        setActionError('Não foi possível carregar o produto para duplicar.');
+        return;
+      }
+      const duplicateFrom: ProductDuplicateSeed = {
+        name: `${full.name} (cópia)`,
+        short_description: full.short_description,
+        description: full.description,
+        category_id: full.category_id,
+        brand_id: full.brand_id,
+        condition: full.condition,
+        price: full.price,
+        currency: full.currency,
+        compatibility_notes: full.compatibility_notes,
+      };
+      navigate('/admin/produtos/novo', { state: { duplicateFrom } });
+    } catch {
+      setActionError('Não foi possível carregar o produto para duplicar.');
+    } finally {
+      setBusyProductId(null);
     }
   }
 
@@ -161,13 +222,29 @@ export function ProductsPage() {
                     <Badge tone={STATUS_TONE[item.status]}>{STATUS_LABEL[item.status]}</Badge>
                   </td>
                   <td className="py-2 pr-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Link
                         to={`/admin/produtos/${item.id}`}
                         className="text-sm text-brand-700 hover:underline"
                       >
                         Editar
                       </Link>
+                      <button
+                        type="button"
+                        className="text-sm text-brand-700 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                        disabled={busyProductId === item.id}
+                        onClick={() => void toggleAvailability(item)}
+                      >
+                        {item.status === 'available' ? 'Despublicar' : 'Publicar'}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-sm text-brand-700 hover:underline disabled:pointer-events-none disabled:opacity-50"
+                        disabled={busyProductId === item.id}
+                        onClick={() => void duplicateProduct(item)}
+                      >
+                        Duplicar
+                      </button>
                       <button
                         type="button"
                         className="text-sm text-danger-500 hover:underline"

@@ -12,7 +12,9 @@ Deviations from a "textbook" structure are called out with the reasoning.
 ├── .env.example                  Documents required env vars (no real secrets)
 ├── .prettierrc.json / .prettierignore
 ├── .oxlintrc.json                 Linter config
-├── .github/workflows/deploy.yml    Build + deploy to GitHub Pages on push to main (Phase 4)
+├── .github/workflows/deploy.yml    Build + deploy to GitHub Pages on push to main (Phase 4),
+│                                      generates sitemap.xml as a post-build step (Phase 5)
+├── scripts/generate-sitemap.mjs     CI-only sitemap.xml generator (Phase 5, see ARCHITECTURE.md)
 │
 ├── src/
 │   ├── main.tsx                    App entry point: mounts <App /> and imports global.css
@@ -27,6 +29,9 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │   └── buttonStyles.ts             Button's classes, exported separately so a non-<button>
 │   │                                    (e.g. a CTA <Link>) can reuse them without breaking
 │   │                                    Fast Refresh (a component file must only export components)
+│   │
+│   ├── hooks/                       Non-feature-specific hooks (Phase 5 — see "Deviations" below)
+│   │   └── useDocumentHead.ts          Per-page <title>/description/Open Graph <meta> tags
 │   │
 │   ├── layouts/                     Page shells composed with react-router's <Outlet />
 │   │   ├── PublicLayout.tsx           Header/footer for storefront pages
@@ -50,7 +55,8 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   ├── features/catalogue/            Public catalogue: queries, hooks, catalogue-only components
 │   │   ├── api.ts                       Every Supabase call (categories/brands/products/images/aliases)
 │   │   ├── types.ts                      View types (ProductListItem, ProductDetail, CategoryNode, ...)
-│   │   ├── format.ts                      formatPrice(), referenceTypeLabel()
+│   │   ├── format.ts                      formatPrice(), referenceTypeLabel(), conditionLabel(),
+│   │   │                                   buildProductUrl(), buildProductMetaDescription() (Phase 5)
 │   │   ├── buildCategoryTree.ts             Flat rows -> tree (+ flatten for indented <select>)
 │   │   ├── useCategories.ts, useBrands.ts    Small fetch-state hooks
 │   │   ├── useProductList.ts               Drives /produtos (filters + range()-based "load more")
@@ -68,7 +74,8 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │   │   ├── categories/                    api.ts, useAdminCategories.ts, CategoryForm.tsx
 │   │   ├── brands/                        same shape as categories/
 │   │   ├── products/
-│   │   │   ├── api.ts                       Products + product_images + product_reference_aliases CRUD
+│   │   │   ├── api.ts                       Products + product_images + product_reference_aliases CRUD,
+│   │   │   │                                 updateProductStatus() + ProductDuplicateSeed (Phase 5)
 │   │   │   ├── useAdminProducts.ts, useAdminProduct.ts
 │   │   │   └── ProductForm.tsx, ProductImageManager.tsx, ReferenceAliasManager.tsx
 │   │   └── settings/
@@ -108,7 +115,9 @@ Deviations from a "textbook" structure are called out with the reasoning.
 │
 ├── public/
 │   ├── favicon.svg
-│   └── .nojekyll                    Tells GitHub Pages not to run the build output through Jekyll
+│   ├── .nojekyll                    Tells GitHub Pages not to run the build output through Jekyll
+│   └── robots.txt                    Static crawl rules (Phase 5 — see ARCHITECTURE.md for the
+│                                        project-page-path caveat); sitemap.xml is CI-generated, not here
 │
 └── docs/
     ├── ARCHITECTURE.md, DATABASE.md, PROJECT_MAP.md (this file), ROADMAP.md
@@ -150,13 +159,26 @@ GitHub Pages deployment (`.github/workflows/deploy.yml`, `vite.config.ts`'s
 Actions. See [ARCHITECTURE.md](ARCHITECTURE.md) ("Deployment strategy")
 for the full mechanics.
 
+## Phase 5 note
+
+SEO metadata (`src/hooks/useDocumentHead.ts`, `public/robots.txt`,
+`scripts/generate-sitemap.mjs`), a search-result clarity fix
+(`matchedAlternativeReference`), and admin product-management QoL (label
+rename, quick publish/unpublish, duplication) were added in Phase 5. Two
+new top-level additions — `src/hooks/` (see "Deviations" below, this is
+the exact trigger that entry named) and `scripts/` (CI-only utility
+scripts, not part of the app bundle). See
+[ARCHITECTURE.md](ARCHITECTURE.md) ("SEO / metadata",
+"Product-management quality-of-life") for the full mechanics.
+
 ## Deviations from the originally sketched structure, and why
 
-- **No top-level `hooks/` directory.** The only hook so far (`useAuth`)
-  belongs conceptually to the auth feature, so it lives in
-  `features/auth/`. An empty `hooks/` directory would have no purpose
-  yet. Add it back if/when a hook emerges that isn't feature-specific
-  (e.g. a generic `useDebounce`).
+- **`hooks/` added in Phase 5**, once a real non-feature-specific hook
+  (`useDocumentHead`, used by every `pages/public/*` route, not owned by
+  one `features/` slice) actually existed — exactly the condition this
+  entry always said would justify it. `useAuth` still lives in
+  `features/auth/`, unchanged — it's feature-specific and has no reason
+  to move.
 - **`features/` currently has three subfolders (`auth`, `catalogue`,
   `admin`).** Each self-contained slice of business functionality — its
   own state/hooks, components, and Supabase calls — gets its own
@@ -165,9 +187,11 @@ for the full mechanics.
   `settings/`) since it's a bigger feature than the other two — a future
   cart/reserve flow would get its own top-level folder, not be bolted
   onto an existing one.
-- **No `hooks/`, `utils/` beyond `cn.ts`.** Kept minimal on purpose —
-  utilities get added when a second, third use case actually needs them,
-  not speculatively.
+- **`utils/` stays minimal** (`cn.ts`, `whatsapp.ts`) — utilities get
+  added when a second, third use case actually needs them, not
+  speculatively; `scripts/` (Phase 5) is a separate thing (Node-run,
+  CI-only, not imported by the app) and deliberately doesn't live under
+  `src/`.
 - **Pages are split `public/` vs `admin/`** (rather than a flat
   `pages/`) to mirror the routing split in `app/routes.tsx` and make the
   public/admin separation visible in the file tree, not just in code.

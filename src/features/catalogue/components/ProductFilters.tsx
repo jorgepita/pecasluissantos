@@ -104,9 +104,9 @@ export function ProductFilters({
         value={condition ?? ''}
         onChange={(event) => onConditionChange(event.target.value)}
         className={cn(selectClasses, 'col-span-2 lg:col-span-1')}
-        aria-label="Filtrar por estado"
+        aria-label="Filtrar por condição"
       >
-        <option value="">Todos os estados</option>
+        <option value="">Todas as condições</option>
         {CONDITION_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

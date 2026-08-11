@@ -96,6 +96,22 @@ already documented before this phase existed.
   revisit (e.g. `pg_trgm`) only if it measurably isn't once the catalogue
   has real volume. No full-text/trigram infrastructure was added now —
   out of scope for this phase and Phase 1A's schema is closed.
+- **Reference-format normalization verified, not rebuilt, in Phase 5**:
+  the search term and the compared columns
+  (`primary_reference_normalized`/`reference_normalized`) were already
+  normalized identically (strip non-alphanumeric, uppercase) since Phase
+  1B — "K9K770"/"K9K-770"/"K9K 770" already collapse to the same match.
+  Confirmed against real production data rather than assumed.
+- **`matchedAlternativeReference` (Phase 5)**: when a search matches a
+  product only via `product_reference_aliases` (an equivalent/OEM code,
+  not its own `primary_reference`), `ProductListItem` now carries which
+  alias reference matched, and `ProductCard` shows a small "Ref.
+  equivalente: …" line — so the customer can tell why that card matched.
+  `searchProductIdsByAliasReference` returns a `Map<productId,
+matchedReference>` (first match wins if a product has more than one hit
+  — informational text, not a ranking signal), threaded through
+  `attachListMetadata`/`listProducts`. `null`/absent outside of an active
+  alias-driven search, so normal browsing is visually unchanged.
 - **Pagination**: `range()`-based "load more" (fixed page size, results
   appended), not page-number pagination. When a search term is active,
   results are still fetched via the same paginated query — the search
@@ -219,6 +235,39 @@ compile-time-only fix, confirmed with an isolated `tsc` repro against the
 installed postgrest-js source before applying it project-wide, and by the
 full admin CRUD build succeeding afterward with zero `as any`/`as never`
 casts needed anywhere in the new code.
+
+### Product-management quality-of-life (Phase 5)
+
+- **"Estado" terminology collision, fixed**: the word was used for two
+  different concepts across the app — `ProductForm`'s condition field
+  ("Estado do artigo": Novo/Usado/Recondicionado) and both
+  `ProductsPage`'s status column and the public condition filter's
+  `aria-label` ("Filtrar por estado"). Renamed the condition-meaning
+  instances to "Condição" (`ProductForm` field label,
+  `ProductFilters.tsx`'s `aria-label`/default option) — "Estado"/
+  "Publicação" now consistently mean publication status only, everywhere.
+- **Quick publish/unpublish**: `updateProductStatus(id, status)`
+  (`features/admin/products/api.ts`) is a partial `.update({ status })`,
+  not the full-row `updateProduct()` the edit form uses — added
+  specifically so `ProductsPage`'s new "Publicar"/"Despublicar" list
+  button doesn't need to fetch-then-resubmit every other field just to
+  flip visibility. Deliberately limited to the `available ⇄ unavailable`
+  toggle; draft/reserved/sold transitions stay a deliberate choice made
+  in the full form.
+- **Product duplication is a pure client-side prefill, not a database
+  operation.** `products.slug` and `(brand_id, primary_reference)` are
+  both unique-constrained (see DATABASE.md), so a server-side copy would
+  always collide. Instead, "Duplicar" on `ProductsPage` fetches the full
+  row (`getAdminProductById`), builds a `ProductDuplicateSeed` (name,
+  descriptions, category/brand, condition, price, currency,
+  compatibility notes — explicitly **not** slug, primary reference,
+  status, or stock quantity), and navigates to `/admin/produtos/novo`
+  with it via router `state`. `ProductForm` gained an `initialValues`
+  prop (distinct from `product`, which alone still controls edit-vs-
+  create mode) read once into its `useState` initializers. Nothing is
+  written until the admin actually fills in a new slug/reference and
+  saves — no new table, no new RLS, no risk of silently duplicating a
+  live listing's visibility or stock.
 
 ## Contact flow (Phase 3)
 
@@ -438,6 +487,55 @@ build`). Deployment is automated: `.github/workflows/deploy.yml` runs on
 - **Custom domain**: deliberately not configured this phase — the free
   `github.io` URL is sufficient for now; revisit as its own small change
   later.
+
+## SEO / metadata (Phase 5)
+
+- **Client-rendered SPA, no SSR/prerendering** — this shapes everything
+  below. `src/hooks/useDocumentHead.ts` sets `document.title` and
+  `<meta name="description">`/`og:*` tags per page (used by every
+  `pages/public/*` route), but only takes effect after React mounts and
+  runs its effects.
+- **Known, deliberate limitation**: this helps the browser tab and any
+  JS-executing crawler (Googlebot renders JS before indexing), but link-
+  preview bots that fetch raw HTML without running JS — WhatsApp,
+  Facebook, X, and similar — only ever see `index.html`'s **static**
+  `<title>`/`og:*` defaults, never a specific product's. True per-product
+  previews for those would need prerendering or SSR, which is
+  disproportionate for a catalogue this size and is **not built** — see
+  ROADMAP.md if this becomes a real requirement later (e.g. once product
+  volume/traffic justifies it).
+- **`buildProductUrl(slug)`** (`src/features/catalogue/format.ts`) is the
+  one implementation of the base-path-correct absolute product URL —
+  `` `origin + import.meta.env.BASE_URL + produtos/<slug>` ``. Both the
+  WhatsApp contact message (`ProductContactActions`) and `og:url`
+  (`ProductDetailPage`) use it now, instead of the inline copy Phase 4
+  originally wrote.
+- **`robots.txt`** (`public/robots.txt`, static — Vite doesn't template
+  `public/` files) disallows `/pecasluissantos/admin/` and points at the
+  sitemap. **Caveat, stated plainly rather than glossed over**: per the
+  robots.txt spec, crawlers only auto-discover a robots.txt at the host
+  root (`https://jorgepita.github.io/robots.txt`), which this repo
+  doesn't control (that would be a separate `jorgepita.github.io`
+  user/org-page repo). Under the current project-page path
+  (`/pecasluissantos/robots.txt`), generic auto-discovery won't find it —
+  it's still correct/harmless, becomes exactly right if a custom domain
+  is ever added, and is discoverable today via a Google Search Console
+  URL-prefix property scoped to this path.
+- **`sitemap.xml`** is **not** committed and **not** produced by
+  `npm run build` (that command stays identical to before this phase, for
+  local dev). It's generated by `scripts/generate-sitemap.mjs` — a small,
+  dependency-free Node script (plain `fetch`/`fs`) — as a **new step in
+  `.github/workflows/deploy.yml`**, run after `vite build`, querying
+  Supabase's REST API directly with the same anon key already in that
+  job. RLS still applies (anon), so it only ever lists
+  `status = 'available'` products, the same rule the public catalogue
+  itself relies on. Includes the homepage, `/produtos`, and every
+  available product's detail page; deliberately excludes
+  `?categoria=`-filtered URLs (duplicate-content-ish, not canonical
+  pages). Degrades gracefully — logs a warning and either skips or falls
+  back to a static-only sitemap, never fails the deploy — if any secret
+  or the Supabase query is unavailable, since a sitemap is a nice-to-
+  have, not a deploy blocker.
 
 ## Key architectural decisions (log)
 

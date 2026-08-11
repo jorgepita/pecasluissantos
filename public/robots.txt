@@ -1,0 +1,22 @@
+# Peças Luís Santos — public catalogue crawl rules.
+#
+# NOTE: this file is served at /pecasluissantos/robots.txt (a GitHub Pages
+# *project* page, not the domain root). Per the robots.txt spec, crawlers
+# only auto-discover a robots.txt at the host root
+# (https://jorgepita.github.io/robots.txt), which this repo does not
+# control — so generic crawler auto-discovery will not find this file as-
+# is. It is kept anyway because it's correct/harmless, becomes exactly
+# right if a custom domain is ever added (see docs/ROADMAP.md), and is
+# still discoverable today via a Google Search Console URL-prefix
+# property scoped to this path. See docs/ARCHITECTURE.md ("SEO /
+# metadata") for the full explanation.
+#
+# The Disallow path below is hardcoded to the current GitHub Pages base
+# path (Vite does not template files in public/ — see vite.config.ts) —
+# update it by hand if the deployment path ever changes.
+
+User-agent: *
+Allow: /
+Disallow: /pecasluissantos/admin/
+
+Sitemap: https://jorgepita.github.io/pecasluissantos/sitemap.xml

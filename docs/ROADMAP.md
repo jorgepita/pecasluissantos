@@ -163,6 +163,61 @@ but as their own phase, not grown out of this one.
 - **Not done**: custom domain (deliberately deferred — see
   ARCHITECTURE.md).
 
+## Phase 5 — Production catalogue readiness (complete)
+
+Presentation/operational polish on the live catalogue — not new business
+scope. Product scope stays `catalogue → product detail → contact`; no
+cart/orders/payments/customer-accounts/invoices were added.
+
+- **Done — SEO/discoverability**: per-page `<title>`/description/Open
+  Graph via `src/hooks/useDocumentHead.ts` (home, catalogue — incl.
+  category-aware title, product detail, not-found); `buildProductUrl()`
+  consolidated into one implementation (`features/catalogue/format.ts`),
+  reused by both the WhatsApp message and `og:url`; static `og:*`
+  defaults added to `index.html`; `public/robots.txt`; CI-generated
+  `sitemap.xml` (`scripts/generate-sitemap.mjs`, new deploy-workflow
+  step). See ARCHITECTURE.md ("SEO / metadata") for the honest limitation
+  — no SSR/prerendering, so non-JS link-preview bots (WhatsApp, Facebook,
+  X) never see the per-product versions, only `index.html`'s static
+  defaults.
+- **Done — search/reference usability**: verified (against real
+  production data, not assumed) that reference-format normalization
+  ("K9K770"/"K9K-770"/"K9K 770") already worked correctly since Phase 1B
+  — no code change needed there. Fixed a real gap: `ProductCard` now
+  shows which alternative reference matched when a search hits a product
+  only via `product_reference_aliases`
+  (`matchedAlternativeReference`) — see ARCHITECTURE.md. Full-text/
+  trigram search was **not** added — nothing in this phase's testing
+  showed the existing `ilike` approach to be insufficient.
+- **Done — admin product-management QoL**: fixed a genuine "Estado"
+  terminology collision between condition and publication status
+  (renamed the condition-meaning instances to "Condição"); added a
+  one-click publish/unpublish action to `ProductsPage`
+  (`updateProductStatus`); added product duplication as a client-side
+  form-prefill (`ProductDuplicateSeed` — no schema change, no risk of
+  copying a slug/reference/stock/live-status). See ARCHITECTURE.md
+  ("Product-management quality-of-life").
+- **Done — real-data verification**: home, catalogue, the three real
+  reference-format search variants, category filter, brand filter
+  (two real brands — "Renault", assigned to the one published product,
+  and "Brembo teste", assigned to none — confirmed the filter both
+  includes and correctly excludes), product detail, image, WhatsApp CTA,
+  footer, deep link, and GitHub-Pages base-path correctness were all
+  verified against real production data (one published product, three
+  categories, two brands). **Not verifiable with current real data**
+  (not faked for testing): multi-image gallery switching (the one
+  product has a single image) and an alternative reference distinct from
+  its own primary reference (the one alias in production happens to
+  equal the primary reference). Revisit once the catalogue has more real
+  listings/photos.
+- **Not done** (deliberately, documented rather than built): true
+  per-product Open Graph previews for non-JS crawlers (needs
+  prerendering/SSR — disproportionate for a catalogue this size, revisit
+  only if traffic/volume ever justifies it); full-text/trigram search
+  (still no evidence it's needed); any cart/order/payment/customer-account
+  functionality; custom domain; any database schema or RLS change (none
+  was required by anything in this phase).
+
 ## Later / not yet scheduled
 
 Everything explicitly deferred by the original brief, in no particular

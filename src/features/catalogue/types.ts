@@ -39,6 +39,12 @@ export interface ProductListItem {
   currency: string;
   stockQuantity: number;
   primaryImagePath: string | null;
+  /** Set only when this item matched an active search *via an alternative
+   * reference* (`product_reference_aliases`), not its own
+   * `primaryReference` — lets `ProductCard` explain the match to the
+   * customer. `null` for every item outside of a search, so normal
+   * browsing is unaffected. See `listProducts` in `api.ts`. */
+  matchedAlternativeReference: string | null;
 }
 
 /** Full detail shown on /produtos/:slug. `category`/`brand` can be null —

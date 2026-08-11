@@ -70,6 +70,19 @@ jobs:
       - name: Add SPA fallback (404.html)
         run: cp dist/index.html dist/404.html
 
+      # Not part of `npm run build` on purpose — see the script's own
+      # header comment (scripts/generate-sitemap.mjs). Reuses the same
+      # Supabase secrets as the Build step above; degrades gracefully
+      # (logs a warning, never fails the job) if anything's missing or the
+      # query fails, since a sitemap is a nice-to-have, not a deploy
+      # blocker.
+      - name: Generate sitemap.xml
+        run: node scripts/generate-sitemap.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SITE_URL: https://jorgepita.github.io/pecasluissantos
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
