@@ -218,6 +218,71 @@ cart/orders/payments/customer-accounts/invoices were added.
   functionality; custom domain; any database schema or RLS change (none
   was required by anything in this phase).
 
+## Phase 6 — Catalogue operations & contact experience (audit complete; small QoL fixes shipped)
+
+Full audit of the day-to-day admin/catalogue/contact workflow against real
+production data (one published product at the time of this audit — see
+"Not verifiable" below), per the phase brief. Product scope unchanged:
+`catalogue → product detail → contact`, no cart/orders/payments.
+
+- **Audit finding**: most of what this phase asked for was already built
+  in Phase 5 (quick publish/unpublish, duplication, reference-alias
+  handling, WhatsApp/phone contact CTA, `matchedAlternativeReference`,
+  empty/error-state separation, mobile polish, SEO). Verified each area
+  against the current code rather than assuming the Phase 5 report still
+  describes it accurately — it does.
+- **Done — admin product list (Workstream A1)**: `ProductsPage`'s table
+  was missing `condition` and `stock_quantity`, so "which products have
+  no stock?" wasn't answerable without opening each product individually.
+  Added "Condição" (reusing the existing `ConditionBadge`) and "Stock"
+  columns; a `stock_quantity = 0` row now reads "Sem stock" in red instead
+  of a bare `0`, so an admin can scan the list for it directly.
+- **Done — product-form description hints (Workstream B2)**: "Descrição
+  curta"/"Descrição" had no hint text, so it wasn't obvious from the form
+  alone that the short description drives the detail page's top summary
+  _and_ the `og:description`/meta-description fallback
+  (`buildProductMetaDescription`), while the long description is
+  secondary body text. Added hint text to both `FormField`s stating this,
+  reusing the existing hint-text pattern — no new component.
+- **Done — image manager clarity (Workstream C2/C3)**: `ProductImageManager`
+  thumbnails now show a small position-number badge (top-left) and, for
+  the primary image, a green "Principal" badge (top-right), in addition
+  to the existing text label/button below each thumbnail — makes primary
+  image and ordering scannable at a glance instead of requiring reading
+  the text under each one. No drag-and-drop added (up/down buttons
+  unchanged, per the phase's explicit guidance).
+- **Verified, not changed** (no defect found, so nothing was touched):
+  reference-format-insensitive search (`K9K770`/`K9K-770`/`K9K 770`/case
+  variants all matched the one real product identically), name search,
+  condition filter, "no results" vs. technical-error-state separation,
+  nonexistent-product 404 handling, WhatsApp contact message contents (no
+  internal id, correct base-path URL), `store_settings` reuse across
+  header/footer/contact CTA, responsive layout at 375/768/1440px on the
+  catalogue and product-detail pages (no horizontal overflow), and
+  duplication's field-selection logic (slug/reference/status/stock
+  correctly excluded).
+- **Not done** (documented, not built — no defect or requirement
+  justified touching these): vehicle-compatibility schema (still
+  `products.compatibility_notes` free text, per the phase's explicit
+  boundary), any drag-and-drop image reordering, any database/RLS
+  change (none was needed).
+- **Real-data verification — public**: home, catalogue, all five
+  reference-search format variants, name search, condition filter,
+  product detail (image, price, condition, compatibility notes,
+  reference alias, contact CTA), 404 for a nonexistent product/search,
+  and 375/768/1440px layouts were driven with a real headless-Chromium
+  session (Playwright) against the local dev server connected to the
+  live Supabase project — see the Phase 6 completion report for the
+  exact commands. Console was clean (no errors) on every page tested.
+- **Not verifiable this phase**: the admin screens (the three changes
+  above, plus login/create/edit/publish/duplicate/settings) were **not**
+  driven in a live browser — admin credentials weren't provided for this
+  session, by the user's choice. They were verified by `tsc`/build/lint/
+  format only. Also unchanged from Phase 5: multi-image gallery
+  switching and a genuinely distinct alternative reference (the one real
+  product still has a single image and its one alias equals its primary
+  reference) — still not testable without more real catalogue data.
+
 ## Later / not yet scheduled
 
 Everything explicitly deferred by the original brief, in no particular

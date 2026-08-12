@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { CatalogueImage } from '@/features/catalogue/components/CatalogueImage';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import {
@@ -131,11 +132,21 @@ export function ProductImageManager({ productId, images, onChanged }: ProductIma
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {sortedImages.map((image, index) => (
             <Card key={image.id} className="overflow-hidden">
-              <CatalogueImage
-                storagePath={image.storage_path}
-                alt={image.alt_text ?? ''}
-                className="h-32 w-full"
-              />
+              <div className="relative">
+                <CatalogueImage
+                  storagePath={image.storage_path}
+                  alt={image.alt_text ?? ''}
+                  className="h-32 w-full"
+                />
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  {index + 1}
+                </span>
+                {image.is_primary && (
+                  <Badge tone="success" className="absolute right-1.5 top-1.5 shadow-sm">
+                    Principal
+                  </Badge>
+                )}
+              </div>
               <div className="space-y-1 p-2 text-xs">
                 {image.is_primary ? (
                   <p className="font-medium text-brand-700">Imagem principal</p>

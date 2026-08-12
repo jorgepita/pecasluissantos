@@ -4,6 +4,7 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { ConditionBadge } from '@/features/catalogue/components/ConditionBadge';
 import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog';
 import { useAdminCategories } from '@/features/admin/categories/useAdminCategories';
 import { useAdminBrands } from '@/features/admin/brands/useAdminBrands';
@@ -196,14 +197,16 @@ export function ProductsPage() {
 
       {!loading && items.length > 0 && (
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[880px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-slate-500">
                 <th className="py-2 pr-4 font-medium">Nome</th>
                 <th className="py-2 pr-4 font-medium">Referência</th>
                 <th className="py-2 pr-4 font-medium">Categoria</th>
                 <th className="py-2 pr-4 font-medium">Marca</th>
+                <th className="py-2 pr-4 font-medium">Condição</th>
                 <th className="py-2 pr-4 font-medium">Preço</th>
+                <th className="py-2 pr-4 font-medium">Stock</th>
                 <th className="py-2 pr-4 font-medium">Estado</th>
                 <th className="py-2 pr-4 font-medium">Ações</th>
               </tr>
@@ -215,8 +218,18 @@ export function ProductsPage() {
                   <td className="py-2 pr-4 text-slate-500">{item.primaryReference}</td>
                   <td className="py-2 pr-4 text-slate-500">{item.categoryName}</td>
                   <td className="py-2 pr-4 text-slate-500">{item.brandName ?? '—'}</td>
+                  <td className="py-2 pr-4">
+                    <ConditionBadge condition={item.condition} />
+                  </td>
                   <td className="py-2 pr-4 text-slate-500">
                     {formatPrice(item.price, item.currency)}
+                  </td>
+                  <td className="py-2 pr-4">
+                    {item.stockQuantity === 0 ? (
+                      <span className="font-medium text-danger-500">Sem stock</span>
+                    ) : (
+                      <span className="text-slate-500">{item.stockQuantity}</span>
+                    )}
                   </td>
                   <td className="py-2 pr-4">
                     <Badge tone={STATUS_TONE[item.status]}>{STATUS_LABEL[item.status]}</Badge>

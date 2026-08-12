@@ -190,7 +190,11 @@ export function ProductForm({
         </FormField>
       </div>
 
-      <FormField label="Descrição curta" htmlFor="product-short-description">
+      <FormField
+        label="Descrição curta"
+        htmlFor="product-short-description"
+        hint="Resumo apresentado no topo da página do produto e usado como descrição para motores de pesquisa/partilha. Se ficar vazio, é gerado automaticamente a partir do nome, condição e referência."
+      >
         <Input
           id="product-short-description"
           value={shortDescription ?? ''}
@@ -198,7 +202,11 @@ export function ProductForm({
         />
       </FormField>
 
-      <FormField label="Descrição" htmlFor="product-description">
+      <FormField
+        label="Descrição"
+        htmlFor="product-description"
+        hint="Texto mais detalhado, apresentado abaixo do resumo na página do produto. Opcional."
+      >
         <textarea
           id="product-description"
           value={description ?? ''}
