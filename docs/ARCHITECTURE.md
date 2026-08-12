@@ -173,12 +173,26 @@ and store settings. All under `/admin/*`, behind the existing
   user isn't in `admin_users`, RLS rejects it and the UI just shows the
   resulting error — there is no `if (isAdmin)` gate in front of a mutation
   that isn't also backed by the matching RLS policy.
-- **Categories/brands: activate/deactivate, not delete.** `on delete
-restrict` (see [DATABASE.md](DATABASE.md)) means a delete UI for these
+- **Categories/brands: activate/deactivate for everyday use; permanent
+  delete only when safe (Phase 6B).** `on delete restrict` (see
+  [DATABASE.md](DATABASE.md)) means an unconditional delete UI for these
   would mostly just surface a confusing FK error once anything references
-  them; deactivating is the supported "remove from the public catalogue"
-  action. Products get a real delete (cascades images/aliases by design),
-  behind `ConfirmDialog`.
+  them, so `CategoriesPage`/`BrandsPage` count dependents first
+  (`getCategoryDeletionBlockers`/`getBrandDeletionBlockers` in each
+  feature's `api.ts`: products directly assigned, plus subcategories for
+  categories) and only offer the `ConfirmDialog`-gated "Eliminar" action
+  when the count is zero — otherwise the click is blocked outright with a
+  specific PT-PT reason ("existem N produtos associados", etc.), no
+  round-trip to the database needed. That count is a courtesy for a good
+  error message, not the safety mechanism: the delete call itself still
+  relies on the same `on delete restrict` foreign keys, and a `23503` from
+  a race (a dependent row created between the check and the delete) is
+  caught and mapped through the existing `pgErrorMessage()` rather than
+  shown raw. Deactivating remains the everyday "remove from the public
+  catalogue" action — deletion doesn't replace it, it's for permanently
+  removing rows that turn out to be unwanted (e.g. test data) once nothing
+  references them. Products get an unconditional real delete (cascades
+  images/aliases by design), behind the same `ConfirmDialog`.
 - **Product images**: reuses the Phase 1A `product-images` bucket and
   `product_images` table — no new bucket, no new table.
   `ProductImageManager` validates type (jpeg/png/webp) and size (5 MB)
@@ -602,10 +616,13 @@ build`). Deployment is automated: `.github/workflows/deploy.yml` runs on
   `.insert()`/`.update()` to type-check at all against a hand-written
   Database type. See "Admin CRUD (Phase 2)" above for the full story;
   don't revert this for style reasons.
-- **Categories/brands get activate/deactivate; products get a real
-  delete.** Different tables, different constraints (`on delete
-restrict` vs. intentional cascade) — the admin UI mirrors that rather
-  than offering one uniform "delete" action everywhere.
+- **Categories/brands get activate/deactivate always, and permanent
+  delete only when dependency-free; products get an unconditional real
+  delete.** Different tables, different constraints (`on delete restrict`
+  vs. intentional cascade) — the admin UI mirrors that rather than
+  offering one uniform "delete" action everywhere. Permanent
+  category/brand deletion (Phase 6B) doesn't change the constraint — it
+  adds a pre-check + friendly blocking message in front of it.
 - **No drag-and-drop library for product image ordering.** Up/down
   buttons swapping `sort_order` cover the need without a new dependency.
 - **The product contact CTA is a link-builder, not a data write.**

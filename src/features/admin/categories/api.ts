@@ -47,12 +47,52 @@ export async function updateCategory(id: number, input: CategoryInput): Promise<
   return data as CategoryRow;
 }
 
-/** Activate/deactivate — the supported "remove from the public catalogue"
- * action for categories. No hard delete: `on delete restrict` means a
- * category with subcategories or products would just fail with a
- * confusing FK error; deactivating is the intended mechanism (see
- * docs/DATABASE.md). */
+/** Activate/deactivate — the everyday "remove from the public catalogue"
+ * action for categories, and the only option while the category still has
+ * dependents (see `deleteCategory` below). */
 export async function setCategoryActive(id: number, isActive: boolean): Promise<void> {
   const { error } = await supabase.from('categories').update({ is_active: isActive }).eq('id', id);
+  if (error) throw error;
+}
+
+export interface CategoryDeletionBlockers {
+  productCount: number;
+  childCategoryCount: number;
+}
+
+/** Counts what would block a permanent delete — products assigned directly
+ * to this category, and subcategories whose `parent_id` points to it. Used
+ * by `CategoriesPage` to decide, *before* offering the delete
+ * confirmation, whether deletion is even possible, and to build the exact
+ * "N produtos associados"/"N subcategorias associadas" message. This is a
+ * courtesy check, not the safety mechanism — `deleteCategory` below still
+ * relies on the database's own `on delete restrict` foreign keys
+ * (`products.category_id`, `categories.parent_id`) in case a dependent row
+ * is created between this check and the actual delete. */
+export async function getCategoryDeletionBlockers(id: number): Promise<CategoryDeletionBlockers> {
+  const [productsResult, childrenResult] = await Promise.all([
+    supabase.from('products').select('*', { count: 'exact', head: true }).eq('category_id', id),
+    supabase.from('categories').select('*', { count: 'exact', head: true }).eq('parent_id', id),
+  ]);
+  if (productsResult.error) throw productsResult.error;
+  if (childrenResult.error) throw childrenResult.error;
+  return {
+    productCount: productsResult.count ?? 0,
+    childCategoryCount: childrenResult.count ?? 0,
+  };
+}
+
+/** Permanent delete. Only ever offered by the UI once
+ * `getCategoryDeletionBlockers` reports zero dependents, but the actual
+ * safety mechanism is unchanged: `on delete restrict` on
+ * `products.category_id` and `categories.parent_id` (see
+ * docs/DATABASE.md). A `23503` here means a dependent row appeared after
+ * the check (a race, not the common case) — the caller maps that to a
+ * friendly message via `pgErrorMessage` rather than trusting the earlier
+ * check alone. No cascade, no automatic deletion of products or
+ * subcategories — this simply removes the one `categories` row, and only
+ * succeeds when nothing references it. */
+export async function deleteCategory(id: number): Promise<void> {
+  const { error } = await supabase.from('categories').delete().eq('id', id);
   if (error) throw error;
 }

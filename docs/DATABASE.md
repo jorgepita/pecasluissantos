@@ -120,8 +120,13 @@ parts-store category tree, and adding one later is a one-line change if
 it ever becomes necessary.
 
 **Deletion**: `on delete restrict` — a category with subcategories or
-products cannot be deleted. The admin UI (a later phase) will need to
-surface this rather than let the delete silently fail.
+products cannot be deleted. The admin UI (`/admin/categorias`, Phase 6B)
+surfaces this: it counts dependents before offering a permanent-delete
+confirmation, and blocks the action with a specific PT-PT message rather
+than letting the delete silently fail against the constraint. That
+UI-level check is a courtesy, not the safety mechanism — this `on delete
+restrict` constraint is, since a dependent row can in principle be created
+between the check and the delete request.
 
 **Indexes**: `parent_id` (tree traversal), `is_active` (filtering the
 public tree). `slug` is already unique-indexed via its constraint.

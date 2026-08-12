@@ -283,6 +283,52 @@ production data (one published product at the time of this audit — see
   product still has a single image and its one alias equals its primary
   reference) — still not testable without more real catalogue data.
 
+## Phase 6B — Safe permanent deletion of categories/brands (complete)
+
+Categories and brands previously only supported activate/deactivate.
+Added permanent deletion for both, gated by a dependency check, so
+test-data categories/brands can actually be removed once they have no
+real products/subcategories referencing them.
+
+- **Done**: `CategoriesPage`/`BrandsPage` gained an "Eliminar" action
+  (visually distinct — red text, separate from "Editar"/"Ativar"/
+  "Desativar") that first counts dependents
+  (`getCategoryDeletionBlockers`: products directly assigned +
+  subcategories; `getBrandDeletionBlockers`: products assigned) and either
+  blocks the click with a specific PT-PT reason ("Não é possível eliminar
+  ... porque existem N produtos associados[ e N subcategorias
+  associadas].") or opens the existing `ConfirmDialog` ("Eliminar
+  categoria/marca definitivamente? ... não pode ser revertida").
+  Deactivation is unchanged and remains the everyday action — deletion is
+  additive, not a replacement.
+- **Rule** (the one this phase asked to be documented explicitly):
+  **categories and brands can only be permanently deleted when no
+  dependent records exist; otherwise they must be reassigned/cleaned up
+  or deactivated instead.** Enforced twice — once as a UI courtesy
+  (`getCategoryDeletionBlockers`/`getBrandDeletionBlockers`, for a
+  specific error message without a failed round trip) and once as the
+  real mechanism (`products.category_id`/`products.brand_id`/
+  `categories.parent_id`'s pre-existing `on delete restrict` — unchanged).
+  A `23503` from a dependency created between the check and the delete
+  (a race) is caught and shown via the existing `pgErrorMessage()`, never
+  raw.
+- **No database/RLS change** — `categories_delete_admin`/
+  `brands_delete_admin` already existed in the Phase 1A migrations
+  (`0004`/`0005`) and were unused by the UI until now; this phase only
+  added the client code that calls them.
+- **Real-data check (read-only, anon key, no admin login)**: confirmed
+  against the live catalogue which of the currently _publicly visible_
+  categories/brands the new dependency check would flag — brand "Brembo
+  teste" (0 products) and category "pastilhas de travão" (0 products, 0
+  children) currently have no visible dependents; category "Travagem e
+  embraiagem" is blocked by its child "pastilhas de travão"; category
+  "Motores" and brand "Renault" are blocked by the one real product. Nothing
+  was deleted — see the Phase 6B completion report. Inactive
+  categories/brands aren't visible to an anonymous check and weren't
+  enumerated (would need admin login, not requested this phase).
+- **Not done**: bulk delete, multi-select, cascade deletion, automatic
+  test-data cleanup — explicitly out of scope, not built.
+
 ## Later / not yet scheduled
 
 Everything explicitly deferred by the original brief, in no particular
