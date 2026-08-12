@@ -4,6 +4,7 @@ import { Container } from '@/components/ui/Container';
 import { DEFAULT_STORE_CONFIG, getStoreConfig } from '@/services/storeConfigService';
 import type { StoreConfig } from '@/types/store-config';
 import { buildTelUrl, buildWhatsAppUrl } from '@/utils/whatsapp';
+import { buildMapUrl } from '@/utils/maps';
 
 /** Shape passed down to every public route via `<Outlet context>` — read
  * with `useOutletContext<PublicLayoutContext>()` (see
@@ -79,7 +80,36 @@ export function PublicLayout() {
         <Container className="grid gap-8 py-8 text-sm text-slate-500 sm:grid-cols-2 sm:py-10">
           <div className="min-w-0">
             <p className="font-medium text-slate-700">{config.storeName}</p>
-            {config.address && <p className="mt-1 break-words">{config.address}</p>}
+            {config.address && (
+              <div className="mt-1">
+                <p className="flex items-start gap-1.5 break-words">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 21c-4.5-4.2-7-7.6-7-11a7 7 0 1 1 14 0c0 3.4-2.5 6.8-7 11Z"
+                    />
+                    <circle cx="12" cy="10" r="2.5" />
+                  </svg>
+                  <span>{config.address}</span>
+                </p>
+                <a
+                  href={buildMapUrl(config.address)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-0.5 inline-block rounded text-brand-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                >
+                  Ver localização no mapa
+                </a>
+              </div>
+            )}
             {openingHoursEntries.length > 0 && (
               <dl className="mt-2 space-y-0.5">
                 {openingHoursEntries.map(([day, hours]) => (
